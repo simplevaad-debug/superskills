@@ -1,0 +1,342 @@
+<mxfile host="app.diagrams.net" agent="Claude Code" version="24.7.0">
+  <diagram id="superskills-arch" name="SuperSkills Architecture">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0" background="#1f2328">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ==================== TITLE ==================== -->
+        <mxCell id="title" value="SuperSkills — System Architecture" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=28;fontColor=#FFFFFF;fontStyle=1;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="800" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Next.js 14+ &amp;nbsp;|&amp;nbsp; Stripe Checkout &amp;nbsp;|&amp;nbsp; Vercel Blob &amp;nbsp;|&amp;nbsp; HMAC Auth &amp;nbsp;|&amp;nbsp; i18n (EN/HE/AR)" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fontColor=#8b949e;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="400" y="65" width="800" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== USER / BROWSER ==================== -->
+        <mxCell id="user-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2d333b;strokeColor=#444c56;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="160" width="200" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="user-label" value="Browser / User" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontColor=#FFFFFF;fontStyle=1;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="user-icon" value="" style="shape=mxgraph.azure.user;fillColor=#D97757;strokeColor=none;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="110" y="210" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="user-actions" value="&lt;div style='text-align:left;color:#c9d1d9;font-size:12px;line-height:1.7;font-family:monospace;'&gt;1. Visit landing page&lt;br&gt;2. Click &quot;Get SuperSkills&quot;&lt;br&gt;3. Complete Stripe pay&lt;br&gt;4. Redirected to /success&lt;br&gt;5. Click Download&lt;br&gt;6. Receive ZIP file&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="55" y="280" width="170" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== VERCEL / NEXT.JS APP ==================== -->
+        <mxCell id="vercel-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2d333b;strokeColor=#D97757;strokeWidth=2;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="340" y="120" width="520" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="vercel-title" value="Vercel — Next.js 14+ App" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontColor=#D97757;fontStyle=1;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="340" y="130" width="520" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Pages -->
+        <mxCell id="pages-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1c2128;strokeColor=#444c56;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="360" y="180" width="220" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="pages-title" value="Pages (App Router)" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontColor=#D97757;fontStyle=1;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="360" y="185" width="220" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="page-home" value="/ &amp;nbsp;Landing Page" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#363b42;strokeColor=#555d66;fontColor=#FFFFFF;fontSize=12;fontFamily=monospace;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="375" y="218" width="190" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="page-success" value="/success &amp;nbsp;Payment OK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#363b42;strokeColor=#555d66;fontColor=#FFFFFF;fontSize=12;fontFamily=monospace;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="375" y="258" width="190" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="page-i18n" value="i18n: EN | HE | AR (RTL)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#363b42;strokeColor=#555d66;fontColor=#8b949e;fontSize=11;fontFamily=monospace;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="375" y="298" width="190" height="32" as="geometry" />
+        </mxCell>
+
+        <!-- API Routes -->
+        <mxCell id="api-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1c2128;strokeColor=#444c56;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="360" y="370" width="480" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="api-title" value="API Routes" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontColor=#D97757;fontStyle=1;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="360" y="375" width="480" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api-checkout" value="/api/stripe/checkout" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2ea043;strokeColor=#3fb950;fontColor=#FFFFFF;fontSize=12;fontFamily=monospace;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="410" width="200" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="api-checkout-desc" value="POST — Creates Stripe&lt;br&gt;Checkout Session" style="text;html=1;align=center;verticalAlign=top;fontSize=10;fontColor=#8b949e;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="380" y="446" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api-webhook" value="/api/stripe/webhook" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8957e5;strokeColor=#a371f7;fontColor=#FFFFFF;fontSize=12;fontFamily=monospace;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="485" width="200" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="api-webhook-desc" value="POST — Receives Stripe&lt;br&gt;payment confirmation" style="text;html=1;align=center;verticalAlign=top;fontSize=10;fontColor=#8b949e;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="380" y="521" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api-download" value="/api/download" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f6feb;strokeColor=#58a6ff;fontColor=#FFFFFF;fontSize=12;fontFamily=monospace;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="555" width="200" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="api-download-desc" value="GET — Validates HMAC token,&lt;br&gt;redirects to Blob signed URL" style="text;html=1;align=center;verticalAlign=top;fontSize=10;fontColor=#8b949e;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="380" y="591" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- HMAC Token Module -->
+        <mxCell id="hmac-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2d333b;strokeColor=#D97757;strokeWidth=1;dashed=1;arcSize=14;" vertex="1" parent="1">
+          <mxGeometry x="620" y="180" width="220" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="hmac-title" value="HMAC Token System" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontColor=#D97757;fontStyle=1;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="620" y="185" width="220" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="hmac-gen" value="Token Generator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D97757;strokeColor=#e8956a;fontColor=#FFFFFF;fontSize=12;fontFamily=Inter;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="645" y="220" width="170" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="hmac-val" value="Token Validator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D97757;strokeColor=#e8956a;fontColor=#FFFFFF;fontSize=12;fontFamily=Inter;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="645" y="264" width="170" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="hmac-desc" value="SHA-256 HMAC &amp;nbsp;|&amp;nbsp; 24h expiry&lt;br&gt;Stateless — no DB required" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#8b949e;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="620" y="305" width="220" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Lib modules inside Vercel -->
+        <mxCell id="lib-stripe" value="lib/stripe.ts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#363b42;strokeColor=#555d66;fontColor=#c9d1d9;fontSize=11;fontFamily=monospace;" vertex="1" parent="1">
+          <mxGeometry x="620" y="420" width="110" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="lib-tokens" value="lib/tokens.ts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#363b42;strokeColor=#555d66;fontColor=#c9d1d9;fontSize=11;fontFamily=monospace;" vertex="1" parent="1">
+          <mxGeometry x="740" y="420" width="110" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="lib-i18n" value="lib/i18n/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#363b42;strokeColor=#555d66;fontColor=#c9d1d9;fontSize=11;fontFamily=monospace;" vertex="1" parent="1">
+          <mxGeometry x="620" y="458" width="110" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="lib-utils" value="lib/utils.ts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#363b42;strokeColor=#555d66;fontColor=#c9d1d9;fontSize=11;fontFamily=monospace;" vertex="1" parent="1">
+          <mxGeometry x="740" y="458" width="110" height="28" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== STRIPE ==================== -->
+        <mxCell id="stripe-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2d333b;strokeColor=#635bff;strokeWidth=2;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="960" y="160" width="240" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="stripe-title" value="Stripe" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontColor=#635bff;fontStyle=1;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="960" y="170" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="stripe-checkout" value="Hosted Checkout" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#635bff;strokeColor=#7c75ff;fontColor=#FFFFFF;fontSize=12;fontFamily=Inter;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="990" y="210" width="180" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="stripe-webhooks" value="Webhooks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#635bff;strokeColor=#7c75ff;fontColor=#FFFFFF;fontSize=12;fontFamily=Inter;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="990" y="254" width="180" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="stripe-sessions" value="Sessions API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#635bff;strokeColor=#7c75ff;fontColor=#FFFFFF;fontSize=12;fontFamily=Inter;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="990" y="298" width="180" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="stripe-dash" value="Dashboard &amp; Analytics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#363b42;strokeColor=#555d66;fontColor=#c9d1d9;fontSize=11;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="990" y="345" width="180" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== VERCEL BLOB ==================== -->
+        <mxCell id="blob-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2d333b;strokeColor=#1f6feb;strokeWidth=2;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="960" y="460" width="240" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="blob-title" value="Vercel Blob Storage" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontColor=#58a6ff;fontStyle=1;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="960" y="470" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="blob-file" value="superskills.zip" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1f6feb;strokeColor=#58a6ff;fontColor=#FFFFFF;fontSize=13;fontFamily=monospace;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="510" width="160" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="blob-desc" value="Signed URL access only&lt;br&gt;Time-limited download links" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#8b949e;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="960" y="555" width="240" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ARROWS / FLOW ==================== -->
+
+        <!-- 1. User → Landing Page -->
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#D97757;strokeWidth=2;fontColor=#D97757;fontSize=11;fontFamily=Inter;" edge="1" parent="1" source="user-group" target="page-home">
+          <mxGeometry relative="1" as="geometry" />
+          <mxCell id="arrow1-label" value="1. Visit" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontColor=#D97757;fontSize=11;fontFamily=Inter;fontStyle=1;labelBackgroundColor=#1f2328;" connectable="0" vertex="1" as="label">
+            <mxGeometry x="-0.2" relative="1" as="geometry" />
+          </mxCell>
+        </mxCell>
+
+        <!-- 2. User → POST /api/stripe/checkout -->
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#3fb950;strokeWidth=2;fontColor=#3fb950;fontSize=11;fontFamily=Inter;" edge="1" parent="1" source="user-group" target="api-checkout">
+          <mxGeometry relative="1" as="geometry" />
+          <mxCell id="arrow2-label" value="2. POST" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontColor=#3fb950;fontSize=11;fontFamily=Inter;fontStyle=1;labelBackgroundColor=#1f2328;" connectable="0" vertex="1" as="label">
+            <mxGeometry x="-0.2" relative="1" as="geometry" />
+          </mxCell>
+        </mxCell>
+
+        <!-- 3. Checkout API → Stripe Checkout -->
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#3fb950;strokeWidth=2;" edge="1" parent="1" source="api-checkout" target="stripe-checkout">
+          <mxGeometry relative="1" as="geometry" />
+          <mxCell id="arrow3-label" value="3. Create Session" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontColor=#3fb950;fontSize=10;fontFamily=Inter;fontStyle=1;labelBackgroundColor=#1f2328;" connectable="0" vertex="1" as="label">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </mxCell>
+
+        <!-- 4. Stripe → /success redirect -->
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#635bff;strokeWidth=2;dashed=1;" edge="1" parent="1" source="stripe-checkout" target="page-success">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="940" y="274" />
+              <mxPoint x="940" y="274" />
+            </Array>
+          </mxGeometry>
+          <mxCell id="arrow4-label" value="4. Redirect ?session_id=xxx" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontColor=#635bff;fontSize=10;fontFamily=Inter;fontStyle=1;labelBackgroundColor=#1f2328;" connectable="0" vertex="1" as="label">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </mxCell>
+
+        <!-- 5. Success page → Stripe Sessions API (verify) -->
+        <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#635bff;strokeWidth=2;" edge="1" parent="1" source="page-success" target="stripe-sessions">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="920" y="274" />
+              <mxPoint x="920" y="315" />
+            </Array>
+          </mxGeometry>
+          <mxCell id="arrow5-label" value="5. Verify payment" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontColor=#635bff;fontSize=10;fontFamily=Inter;fontStyle=1;labelBackgroundColor=#1f2328;" connectable="0" vertex="1" as="label">
+            <mxGeometry x="0.3" relative="1" as="geometry" />
+          </mxCell>
+        </mxCell>
+
+        <!-- 5b. Success → HMAC generate token -->
+        <mxCell id="arrow5b" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#D97757;strokeWidth=2;dashed=1;" edge="1" parent="1" source="page-success" target="hmac-gen">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="610" y="290" />
+              <mxPoint x="610" y="237" />
+            </Array>
+          </mxGeometry>
+          <mxCell id="arrow5b-label" value="5b. Generate token (24h)" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontColor=#D97757;fontSize=10;fontFamily=Inter;fontStyle=1;labelBackgroundColor=#1f2328;" connectable="0" vertex="1" as="label">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </mxCell>
+
+        <!-- 6. User → /api/download -->
+        <mxCell id="arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.85;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#58a6ff;strokeWidth=2;" edge="1" parent="1" source="user-group" target="api-download">
+          <mxGeometry relative="1" as="geometry" />
+          <mxCell id="arrow6-label" value="6. GET ?token=xxx" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontColor=#58a6ff;fontSize=11;fontFamily=Inter;fontStyle=1;labelBackgroundColor=#1f2328;" connectable="0" vertex="1" as="label">
+            <mxGeometry x="-0.2" relative="1" as="geometry" />
+          </mxCell>
+        </mxCell>
+
+        <!-- 6b. Download API → HMAC Validator -->
+        <mxCell id="arrow6b" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;strokeColor=#D97757;strokeWidth=2;dashed=1;" edge="1" parent="1" source="api-download" target="hmac-val">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="480" y="540" />
+              <mxPoint x="630" y="540" />
+              <mxPoint x="630" y="298" />
+            </Array>
+          </mxGeometry>
+          <mxCell id="arrow6b-label" value="6b. Validate HMAC" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontColor=#D97757;fontSize=10;fontFamily=Inter;fontStyle=1;labelBackgroundColor=#1f2328;" connectable="0" vertex="1" as="label">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </mxCell>
+
+        <!-- 7. Download API → Vercel Blob -->
+        <mxCell id="arrow7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#58a6ff;strokeWidth=2;" edge="1" parent="1" source="api-download" target="blob-file">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="900" y="573" />
+              <mxPoint x="900" y="528" />
+            </Array>
+          </mxGeometry>
+          <mxCell id="arrow7-label" value="7. Redirect → Signed URL" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontColor=#58a6ff;fontSize=10;fontFamily=Inter;fontStyle=1;labelBackgroundColor=#1f2328;" connectable="0" vertex="1" as="label">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </mxCell>
+
+        <!-- 8. Stripe Webhook → /api/stripe/webhook -->
+        <mxCell id="arrow8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#a371f7;strokeWidth=2;" edge="1" parent="1" source="stripe-webhooks" target="api-webhook">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="900" y="271" />
+              <mxPoint x="900" y="503" />
+            </Array>
+          </mxGeometry>
+          <mxCell id="arrow8-label" value="8. POST event" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontColor=#a371f7;fontSize=10;fontFamily=Inter;fontStyle=1;labelBackgroundColor=#1f2328;" connectable="0" vertex="1" as="label">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </mxCell>
+
+        <!-- ==================== LEGEND ==================== -->
+        <mxCell id="legend-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2d333b;strokeColor=#444c56;arcSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="260" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="Legend" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontColor=#FFFFFF;fontStyle=1;fontFamily=Inter;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="493" width="100" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="endArrow=classic;html=1;strokeColor=#D97757;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="60" y="535" as="sourcePoint" />
+            <mxPoint x="110" y="535" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg1-text" value="HMAC / Auth flow" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#D97757;fontFamily=Inter;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="115" y="523" width="130" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="" style="endArrow=classic;html=1;strokeColor=#3fb950;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="60" y="558" as="sourcePoint" />
+            <mxPoint x="110" y="558" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg2-text" value="Checkout flow" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#3fb950;fontFamily=Inter;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="115" y="546" width="130" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="" style="endArrow=classic;html=1;strokeColor=#58a6ff;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="60" y="581" as="sourcePoint" />
+            <mxPoint x="110" y="581" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg3-text" value="Download flow" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#58a6ff;fontFamily=Inter;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="115" y="569" width="130" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" value="" style="endArrow=classic;html=1;strokeColor=#a371f7;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="60" y="604" as="sourcePoint" />
+            <mxPoint x="110" y="604" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg4-text" value="Webhook event" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#a371f7;fontFamily=Inter;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="115" y="592" width="130" height="24" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ENV VARS NOTE ==================== -->
+        <mxCell id="env-note" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2d333b;strokeColor=#444c56;arcSize=14;" vertex="1" parent="1">
+          <mxGeometry x="960" y="660" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="env-title" value="Environment Variables" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontColor=#FFFFFF;fontStyle=1;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="960" y="665" width="240" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="env-list" value="&lt;div style='text-align:left;color:#8b949e;font-size:10px;line-height:1.6;font-family:monospace;'&gt;STRIPE_SECRET_KEY&lt;br&gt;STRIPE_WEBHOOK_SECRET&lt;br&gt;STRIPE_PRICE_ID&lt;br&gt;NEXT_PUBLIC_STRIPE_KEY&lt;br&gt;DOWNLOAD_TOKEN_SECRET&lt;br&gt;BLOB_READ_WRITE_TOKEN&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="960" y="690" width="240" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== TECH STACK NOTE ==================== -->
+        <mxCell id="tech-note" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2d333b;strokeColor=#444c56;arcSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="660" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="tech-title" value="Tech Stack" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontColor=#FFFFFF;fontStyle=1;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="40" y="665" width="260" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="tech-list" value="&lt;div style='text-align:left;color:#8b949e;font-size:10px;line-height:1.6;font-family:Inter;'&gt;Next.js 14+ (App Router) &amp;nbsp;|&amp;nbsp; TypeScript&lt;br&gt;Tailwind CSS &amp;nbsp;|&amp;nbsp; Framer Motion&lt;br&gt;Stripe Checkout (hosted)&lt;br&gt;Vercel Blob Storage&lt;br&gt;HMAC-SHA256 Token Auth&lt;br&gt;i18n: English, Hebrew, Arabic (RTL)&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="690" width="260" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== FLOW SUMMARY ==================== -->
+        <mxCell id="flow-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2d333b;strokeColor=#444c56;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="340" y="660" width="580" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-title" value="Purchase &amp; Download Flow" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontColor=#FFFFFF;fontStyle=1;fontFamily=Inter;" vertex="1" parent="1">
+          <mxGeometry x="340" y="665" width="580" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-steps" value="&lt;div style='text-align:left;color:#c9d1d9;font-size:11px;line-height:1.6;font-family:Inter;'&gt;&lt;span style='color:#D97757;font-weight:bold;'&gt;1.&lt;/span&gt; User visits landing page (Next.js on Vercel) &amp;nbsp;→&amp;nbsp; &lt;span style='color:#D97757;font-weight:bold;'&gt;2.&lt;/span&gt; Clicks &quot;Get SuperSkills&quot; → POST /api/stripe/checkout → Stripe Session&lt;br&gt;&lt;span style='color:#D97757;font-weight:bold;'&gt;3.&lt;/span&gt; Stripe redirects to /success?session_id=xxx &amp;nbsp;→&amp;nbsp; &lt;span style='color:#D97757;font-weight:bold;'&gt;4.&lt;/span&gt; Success page calls stripe.checkout.sessions.retrieve() to verify&lt;br&gt;&lt;span style='color:#D97757;font-weight:bold;'&gt;5.&lt;/span&gt; If paid → HMAC-signed download token generated (24h expiry) &amp;nbsp;→&amp;nbsp; &lt;span style='color:#D97757;font-weight:bold;'&gt;6.&lt;/span&gt; User clicks Download → GET /api/download?token=xxx&lt;br&gt;&lt;span style='color:#D97757;font-weight:bold;'&gt;7.&lt;/span&gt; Server validates HMAC → redirects to Vercel Blob signed URL &amp;nbsp;→&amp;nbsp; &lt;span style='color:#D97757;font-weight:bold;'&gt;8.&lt;/span&gt; Stripe webhook POST confirms payment async&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;spacingLeft=12;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="340" y="690" width="580" height="85" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

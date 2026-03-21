@@ -20,6 +20,12 @@ export function Footer() {
             </div>
             <div className="flex items-center gap-6">
               <Link
+                href="/tos"
+                className="text-xs text-[#52525b] hover:text-[#a1a1aa] transition-colors"
+              >
+                {t("footer.tos")}
+              </Link>
+              <Link
                 href="/terms"
                 className="text-xs text-[#52525b] hover:text-[#a1a1aa] transition-colors"
               >

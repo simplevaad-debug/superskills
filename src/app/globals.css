@@ -1,26 +1,112 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0b;
+  --foreground: #fafafa;
+  --muted: #a1a1aa;
+  --border: #27272a;
+  --surface: #141415;
+  --surface-hover: #1c1c1e;
+  --accent: #D97757;
+  --accent-hover: #c5673f;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Accessibility: High Contrast ─── */
+.a11y-high-contrast {
+  --foreground: #ffffff;
+  --muted: #e4e4e7;
+  --border: #71717a;
+}
+.a11y-high-contrast body {
+  color: #ffffff;
+}
+.a11y-high-contrast * {
+  border-color: #71717a !important;
+}
+.a11y-high-contrast p,
+.a11y-high-contrast span,
+.a11y-high-contrast li {
+  color: #e4e4e7 !important;
+}
+.a11y-high-contrast h1,
+.a11y-high-contrast h2,
+.a11y-high-contrast h3,
+.a11y-high-contrast h4 {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* ─── Accessibility: Reduced Motion ─── */
+.a11y-reduced-motion *,
+.a11y-reduced-motion *::before,
+.a11y-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+.a11y-reduced-motion canvas {
+  display: none !important;
+}
+
+/* ─── Accessibility: Larger Touch Targets ─── */
+.a11y-large-links a,
+.a11y-large-links button {
+  min-height: 48px !important;
+  min-width: 48px !important;
+  padding: 12px 16px !important;
+}
+
+/* ─── Accessibility: Focus Highlight ─── */
+.a11y-focus-highlight *:focus-visible {
+  outline: 3px solid #D97757 !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px rgba(217, 119, 87, 0.3) !important;
+}
+
+/* ─── Default focus styles (WCAG) ─── */
+*:focus-visible {
+  outline: 2px solid #D97757;
+  outline-offset: 2px;
+}
+
+/* ─── Scrollbar hide ─── */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
