@@ -57,6 +57,9 @@ export const metadata: Metadata = {
     "color-scheme": "dark",
     "product:price:amount": "50.00",
     "product:price:currency": "USD",
+    ...(process.env.NEXT_PUBLIC_GSC_VERIFICATION
+      ? { "google-site-verification": process.env.NEXT_PUBLIC_GSC_VERIFICATION }
+      : {}),
   },
 };
 
