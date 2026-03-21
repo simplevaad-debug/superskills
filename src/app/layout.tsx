@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { GTMHead, GTMNoScript } from "@/components/seo/gtm";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -71,7 +72,9 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
+      <GTMHead />
       <body className="min-h-screen bg-[#0a0a0b]">
+        <GTMNoScript />
         {children}
         <Analytics />
       </body>
