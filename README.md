@@ -137,6 +137,12 @@ When you ask Claude Code to build a React component, `react-expert` activates au
 - [Claude Code](https://claude.ai/download) CLI installed
 - Claude Pro or Team subscription
 
+## Credits
+
+The skills in this collection build upon open-source work by:
+- **[Jeff Allan](https://github.com/Jeffallan)** — original skill architecture and implementations ([marketingskills](https://github.com/coreyhaines31/marketingskills))
+- **[Jesse Vincent (@obra)](https://github.com/obra)** — systematic debugging, TDD iron laws, and testing anti-patterns ([superpowers](https://github.com/obra/superpowers))
+
 ## License
 
-The 5 free skills in this repo are MIT licensed. The full 106-skill collection is a paid product — see [superskills-one.vercel.app](https://superskills-one.vercel.app) for details.
+MIT — see [LICENSE](LICENSE) for details. The 5 free skills in this repo are fully open source. The full 106-skill collection is available at [superskills-one.vercel.app](https://superskills-one.vercel.app).
