@@ -1,0 +1,297 @@
+---
+title: "Claude Code למפתחי Python"
+description: "איך מפתחי Python משתמשים בסקילי Claude Code לכתיבת קוד נקי יותר, בניית שירותי FastAPI, ניהול data pipelines ואוטומציה של בדיקות."
+date: "2026-03-02"
+author: "SuperSkills"
+tags: ["claude code", "python", "fastapi", "django", "data science"]
+category: "שימוש"
+---
+
+Python נמצאת בכל מקום. היא מניעה אפליקציות Django, microservices של FastAPI, data pipelines, מודלי machine learning, סקריפטים לאוטומציה וכלי CLI. השפה היא רב-תכליתית — אבל אותה רב-תכליתיות פירושה שקל לכתוב Python שעובד טכנית אבל נכשל בקנה מידה, קשה לבדיקה, או נשבר כשמישהו אחר נוגע בה.
+
+Claude Code עם סקילים ספציפיים ל-Python לא רק כותב Python. הוא כותב Python בדרך שמהנדס Python בכיר היה כותב: עם type hints, טיפול שגיאות נכון, תבניות אידיומטיות, והחלטות ארכיטקטוניות שמתיישנות בצורה טובה.
+
+## סקילי Python באוסף SuperSkills
+
+אלה הם סקילי Python המרכזיים:
+
+**`python-pro`** — הבסיס. מכסה Python אידיומטי: list comprehensions לעומת generator expressions, context managers, dataclasses, `__slots__`, היררכיות חריגות נכונות, והתבניות שהופכות קוד Python ל-Pythonic ולא רק פונקציונלי.
+
+**`fastapi-expert`** — FastAPI מניתוב עד פריסה: dependency injection, מודלי Pydantic, handlers אסינכרוניים, background tasks, middleware, זרימות OAuth2, ותיעוד OpenAPI. יודע מתי להשתמש ב-`async def` ומתי `def` רגיל הוא בעצם מהיר יותר.
+
+**`django-expert`** — עומק Django: אופטימיזציית ORM, managers מותאמים, signals, middleware, ממשק האדמין, views מבוססי-class לעומת מבוססי-function, Django REST Framework, ותבניות הבדיקה שבאמת עובדות עם test runner של Django.
+
+**`pytest-master`** — משמעת בדיקות: fixtures, parametrize, mocking עם `unittest.mock` ו-`pytest-mock`, ארגון בדיקות, הגדרת coverage, והתבניות שהופכות test suites למהירות וניתנות לתחזוקה.
+
+## Type Hints שבאמת עוזרים
+
+מערכת הטיפוסים של Python היא אופציונלית, מה שאומר שרוב הפרויקטים מתעלמים ממנה לחלוטין או משתמשים בה באי-עקביות. סקיל `python-pro` הופך את ה-type annotations של Claude לשימושיות, לא דקורטיביות.
+
+### לפני: חתימות מעורפלות
+
+```python
+def process_orders(orders, config=None):
+    results = []
+    for order in orders:
+        if validate(order, config):
+            results.append(transform(order))
+    return results
+```
+
+זה מתקמפל, רץ, ועושה משהו. אבל מה? מה זה `orders`? מה הוא מחזיר? מה קורה עם `config=None`?
+
+### אחרי: טיפוסים מתעדים את עצמם
+
+```python
+from typing import Sequence
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class ProcessingConfig:
+    validate_stock: bool = True
+    apply_discounts: bool = True
+    max_retries: int = 3
+
+def process_orders(
+    orders: Sequence[Order],
+    config: ProcessingConfig | None = None,
+) -> list[ProcessedOrder]:
+    active_config = config or ProcessingConfig()
+    return [
+        transform(order, active_config)
+        for order in orders
+        if validate(order, active_config)
+    ]
+```
+
+הסקיל פונה ל-`dataclass(frozen=True)` לאובייקטי config (בלתי ניתנים לשינוי, ניתנים להחשה, ניתנים להשוואה), משתמש ב-`Sequence` במקום `list` לקלט (מקבל כל iterable), ומחזיר `list` קונקרטי כי המתקשר מצפה לרשימה. ההבחנות הללו חשובות בבסיסי קוד אמיתיים.
+
+## שירותי FastAPI שמתרחבים
+
+סקיל `fastapi-expert` משנה את האופן שבו Claude מבנה אפליקציות FastAPI. במקום קבצים שטוחים עם פונקציות route, מקבלים מבנה אפליקציה נכון.
+
+### Dependency Injection לשירותים נקיים
+
+```python
+from fastapi import FastAPI, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Annotated
+
+app = FastAPI()
+
+# תלות לשימוש חוזר — נקייה וניתנת לבדיקה
+async def get_db() -> AsyncSession:
+    async with SessionLocal() as session:
+        yield session
+
+DBSession = Annotated[AsyncSession, Depends(get_db)]
+
+@app.get("/users/{user_id}", response_model=UserResponse)
+async def get_user(user_id: int, db: DBSession):
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {user_id} not found"
+        )
+    return user
+```
+
+הסקיל יודע: להשתמש ב-`Annotated` לטיפוסי תלות (תבנית FastAPI 0.95+), קבועי `status` במקום מספרים קסומים, ניהול async session עם context managers נכונים, ו-`response_model` לסריאליזציה אוטומטית ומסמכי OpenAPI.
+
+### מודלי Pydantic שנעשים נכון
+
+```python
+from pydantic import BaseModel, EmailStr, field_validator, model_validator
+from datetime import datetime
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    username: str
+    password: str
+    birth_year: int
+
+    @field_validator("username")
+    @classmethod
+    def username_valid(cls, v: str) -> str:
+        if not v.replace("_", "").isalnum():
+            raise ValueError("שם המשתמש חייב להיות אלפאנומרי (קווים תחתיים מותרים)")
+        if len(v) < 3:
+            raise ValueError("שם המשתמש חייב להיות לפחות 3 תווים")
+        return v.lower()
+
+    @model_validator(mode="after")
+    def check_age(self) -> "UserCreate":
+        current_year = datetime.now().year
+        if current_year - self.birth_year < 13:
+            raise ValueError("חייב להיות לפחות בן 13")
+        return self
+```
+
+הסקיל משתמש ב-`field_validator` ו-`model_validator` (תבניות Pydantic v2), `EmailStr` לאימות אימייל, ומדגים אימות ברמת שדה וברמת מודל — תבניות שרוב המפתחים מעתיקים מתיעוד אבל לעיתים נדירות מצליחים לנכון בניסיון הראשון.
+
+## זרימות עבודה של Data Science
+
+קוד data science ב-Python נוטה להיות notebooks חקרניים שהפכו לסקריפטים לייצור — עם כל הבעיות הנלוות לכך. סקיל `python-pro` עוזר ל-Claude לכתוב קוד נתונים שניתן לתחזוקה באמת.
+
+### תבנית Pipeline על פני סקריפטים סדרתיים
+
+```python
+from dataclasses import dataclass
+from typing import Callable
+import pandas as pd
+
+@dataclass
+class Pipeline:
+    steps: list[tuple[str, Callable[[pd.DataFrame], pd.DataFrame]]]
+
+    def run(self, df: pd.DataFrame) -> pd.DataFrame:
+        for name, step in self.steps:
+            df = step(df)
+            assert not df.empty, f"שלב Pipeline '{name}' הפיק DataFrame ריק"
+        return df
+
+def remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:
+    return df.drop_duplicates(subset=["user_id", "event_date"])
+
+def fill_missing_values(df: pd.DataFrame) -> pd.DataFrame:
+    return df.assign(
+        revenue=df["revenue"].fillna(0),
+        country=df["country"].fillna("unknown"),
+    )
+
+def add_derived_features(df: pd.DataFrame) -> pd.DataFrame:
+    return df.assign(
+        revenue_per_event=df["revenue"] / df["event_count"].clip(lower=1),
+        is_high_value=df["revenue"] > df["revenue"].quantile(0.9),
+    )
+
+pipeline = Pipeline(steps=[
+    ("remove_duplicates", remove_duplicates),
+    ("fill_missing", fill_missing_values),
+    ("feature_engineering", add_derived_features),
+])
+```
+
+כל שלב הוא פונקציה טהורה (קל לבדיקה), שלבים עם שמות מסייעים לדיבוג, ה-assertion תופס DataFrames ריקים לפני שהם גורמים לכשלים שקטים בהמשך.
+
+## תבניות Async
+
+סקיל `fastapi-expert` מבין את הניואנסים של async Python שמכשילים את רוב המפתחים.
+
+```python
+import asyncio
+import httpx
+
+# שגוי: קריאות async סדרתיות (מבטל את המטרה)
+async def fetch_user_data_slow(user_id: int) -> dict:
+    profile = await fetch_profile(user_id)
+    orders = await fetch_orders(user_id)
+    preferences = await fetch_preferences(user_id)
+    return {"profile": profile, "orders": orders, "preferences": preferences}
+
+# נכון: קריאות async מקבילות עם asyncio.gather
+async def fetch_user_data_fast(user_id: int) -> dict:
+    profile, orders, preferences = await asyncio.gather(
+        fetch_profile(user_id),
+        fetch_orders(user_id),
+        fetch_preferences(user_id),
+    )
+    return {"profile": profile, "orders": orders, "preferences": preferences}
+
+# נכון: בקשות HTTP מקבילות עם connection pooling
+async def bulk_fetch_prices(product_ids: list[int]) -> list[dict]:
+    async with httpx.AsyncClient() as client:
+        tasks = [
+            client.get(f"/api/prices/{pid}")
+            for pid in product_ids
+        ]
+        responses = await asyncio.gather(*tasks)
+        return [r.json() for r in responses if r.status_code == 200]
+```
+
+הסקיל יודע את ההבדל בין `async def` (רץ ב-event loop) לבין `def` רגיל (blocking), מתי `asyncio.gather` לעומת `asyncio.TaskGroup` מתאים, וכיצד לאגד חיבורי HTTP כראוי.
+
+## בדיקות עם pytest
+
+סקיל `pytest-master` מייצר בדיקות שבאמת שימושיות — לא רק בדיקות שעוברות.
+
+### Fixtures ו-Parametrize
+
+```python
+import pytest
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+
+@pytest.fixture(scope="session")
+def engine():
+    return create_async_engine("sqlite+aiosqlite:///:memory:")
+
+@pytest.fixture
+async def db(engine) -> AsyncSession:
+    async with AsyncSession(engine) as session:
+        yield session
+        await session.rollback()
+
+@pytest.fixture
+async def client(db) -> AsyncClient:
+    app.dependency_overrides[get_db] = lambda: db
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        yield client
+    app.dependency_overrides.clear()
+
+@pytest.mark.parametrize("email,expected_status", [
+    ("valid@example.com", 200),
+    ("not-an-email", 422),
+    ("", 422),
+    ("a" * 256 + "@example.com", 422),
+])
+async def test_user_creation(client, email, expected_status):
+    response = await client.post("/users", json={"email": email, "username": "testuser"})
+    assert response.status_code == expected_status
+```
+
+הסקיל משתמש ב-`scope="session"` ל-engine (נוצר פעם אחת), fixtures של db לכל בדיקה עם rollback לבידוד, dependency overrides לבדיקה נקייה, ו-`parametrize` לבדיקת וריאציות קלט מרובות ללא שכפול קוד.
+
+## אופטימיזציית Django ORM
+
+סקיל `django-expert` מונע את בעיית N+1 query ובעיות ביצועים נפוצות אחרות של Django:
+
+```python
+# נאיבי — N+1 queries (1 לorders + 1 לכל order לuser)
+orders = Order.objects.filter(status="pending")
+for order in orders:
+    print(f"{order.user.email}: {order.total}")  # פוגע ב-DB בכל פעם
+
+# עם django-expert — 2 queries סה"כ
+orders = (
+    Order.objects
+    .select_related("user")
+    .filter(status="pending")
+    .only("total", "created_at", "user__email")
+    .order_by("-created_at")
+)
+
+# Many-to-many — prefetch_related, לא select_related
+orders = (
+    Order.objects
+    .prefetch_related("items__product")
+    .filter(user=request.user)
+    .select_related("user", "shipping_address")
+)
+```
+
+הסקיל יודע: `select_related` ל-ForeignKey/OneToOne (SQL JOIN), `prefetch_related` ל-ManyToMany/reverse FK (query נפרד), ו-`only()` להימנע מטעינת שדות שאינם בשימוש בטבלאות גדולות.
+
+## להתחיל
+
+1. התקינו SuperSkills ב-`~/.claude/skills/`
+2. פתחו את פרויקט ה-Python שלכם ב-Claude Code
+3. סקילים מופעלים אוטומטית בהתאם ל-imports והקשר קבצים — `fastapi-expert` נכנס לפעולה כשמזהים imports של FastAPI, `pytest-master` מופעל בקבצי בדיקות
+4. התחילו לבנות: "צור endpoint לאימות משתמשים," "כתוב בדיקות לשירות הזה," "אופטם את שאילתת Django הזו"
+
+הפעם הראשונה שClaude כותב endpoint של FastAPI עם dependency injection נכון, validators של Pydantic v2, תבניות async ומסמכי OpenAPI מבלי שנשאל — זה הרגע שמבינים למה סקילים קיימים.
+
+---
+
+*קבלו את 106 הסקילים של SuperSkills כולל חבילת ה-Python המלאה — [הורידו ב-$50](/#pricing) וכתבו Python טוב יותר החל מהיום.*

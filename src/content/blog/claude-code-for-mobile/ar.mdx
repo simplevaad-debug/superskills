@@ -1,0 +1,395 @@
+---
+title: "Claude Code لمطوري الموبايل"
+description: "كيف يستخدم مطورو الموبايل مهارات Claude Code لبناء تطبيقات React Native وFlutter أفضل بخبرة مدعومة بالذكاء الاصطناعي."
+date: "2026-02-24"
+author: "SuperSkills"
+tags: ["claude code", "mobile", "react native", "flutter", "ios", "android"]
+category: "حالة استخدام"
+---
+
+تطوير الموبايل متطلّب بشكل فريد. أنت تكتب كوداً يعمل على آلاف تكوينات الأجهزة المختلفة، عبر نظامَي تشغيل بلغات تصميم مميزة، مع قيود البطارية والذاكرة غير الموجودة في الويب، وعمليات مراجعة متجر التطبيقات التي قد تؤخر الشحن لأيام. الحصول على التفاصيل الخاصة بالمنصة بشكل صحيح يتطلب معرفة تستغرق سنوات لتجميعها.
+
+Claude Code مع المهارات الخاصة بالموبايل يضغط منحنى التعلم هذا. تجلب مهارات `react-native-expert` و`flutter-expert` و`swift-expert` المعرفة على مستوى المنصة مباشرة إلى سير عملك — أنماط التنقل، وإدارة الحالة، وتكامل الوحدات الأصيلة، وتحسين الأداء، والأساليب الخاصة بالمنصة التي تفرّق بين التطبيقات التي يحبها المستخدمون والتطبيقات التي يتركونها.
+
+## مهارات الموبايل في مجموعة SuperSkills
+
+**`react-native-expert`** — عمق React Native: البنية المعمارية الجديدة (JSI وFabric وTurboModules)، والتنقل مع React Navigation 7، وأنماط إدارة الحالة، وربط الوحدات الأصيلة، وتحديد ملف الأداء، والفوارق بين Android وiOS التي تُعثر كل مطور في نهاية المطاف.
+
+**`flutter-expert`** — خبرة Flutter: تحسين شجرة الـwidgets، وإدارة الحالة (Riverpod وBloc وProvider)، وقنوات المنصة، والرسم المخصص، ونظام الرسوم المتحركة، والبناء لـiOS وAndroid والويب من قاعدة كود واحدة.
+
+**`swift-expert`** — iOS الأصيل: أنماط SwiftUI، وتكامل UIKit، وCombine وasync/await، وCore Data، والشبكات مع URLSession، وخصوصيات منصة Apple التي تحدد ما إذا كان تطبيقك سيُعرض أم يُرفض.
+
+## React Native: البنية المعمارية الجديدة
+
+تغيّر بنية React Native المعمارية الجديدة (المستقرة منذ 2024) طريقة جسر JavaScript لكود أصيل. تفهم مهارة `react-native-expert` كلاً من الجسر القديم والنظام الجديد المبني على JSI.
+
+### أنماط المكوّنات للبنية المعمارية الجديدة
+
+```tsx
+import React, { useCallback, useMemo } from 'react'
+import { FlatList, View, Text, Pressable, StyleSheet } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import type { RootStackParamList } from '../navigation/types'
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ProductList'>
+
+interface Product {
+  id: string
+  name: string
+  price: number
+  imageUrl: string
+}
+
+interface ProductListProps {
+  products: Product[]
+  onRefresh: () => void
+  refreshing: boolean
+}
+
+export function ProductList({ products, onRefresh, refreshing }: ProductListProps) {
+  const navigation = useNavigation<NavigationProp>()
+
+  // useCallback يمنع إعادة إنشاء renderItem في كل render للأصل
+  const renderItem = useCallback(({ item }: { item: Product }) => (
+    <ProductCard
+      product={item}
+      onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
+    />
+  ), [navigation])
+
+  // يجب أن يكون keyExtractor مستقراً — لا تستخدم مؤشر المصفوفة أبداً
+  const keyExtractor = useCallback((item: Product) => item.id, [])
+
+  // getItemLayout يُتيح scroll-to-index ويتجاوز القياس
+  const getItemLayout = useCallback(
+    (_: unknown, index: number) => ({
+      length: ITEM_HEIGHT,
+      offset: ITEM_HEIGHT * index,
+      index,
+    }),
+    []
+  )
+
+  return (
+    <FlatList
+      data={products}
+      renderItem={renderItem}
+      keyExtractor={keyExtractor}
+      getItemLayout={getItemLayout}
+      onRefresh={onRefresh}
+      refreshing={refreshing}
+      removeClippedSubviews={true}  // يزيل العناصر خارج الشاشة على Android
+      maxToRenderPerBatch={10}
+      windowSize={5}
+    />
+  )
+}
+
+const ITEM_HEIGHT = 100
+```
+
+المهارة تعرف أفخاخ أداء React Native: إعادة إنشاء `renderItem` في كل render يُبطل تحسين `FlatList`، و`getItemLayout` حاسم للقوائم الطويلة، و`removeClippedSubviews` يساعد Android تحديداً، و`maxToRenderPerBatch` / `windowSize` تُوجّه نافذة الرسم.
+
+### أمان أنواع TypeScript للتنقل
+
+```tsx
+// types/navigation.ts
+export type RootStackParamList = {
+  Home: undefined
+  ProductList: { categoryId: string }
+  ProductDetail: { productId: string }
+  Checkout: { items: CartItem[]; total: number }
+  OrderConfirmation: { orderId: string }
+}
+
+// استخدام التنقل بأنواع كاملة
+function ProductCard({ product }: { product: Product }) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'ProductList'>>()
+
+  return (
+    <Pressable
+      onPress={() => navigation.navigate('ProductDetail', { productId: product.id })}
+      android_ripple={{ color: '#e0e0e0' }}  // تأثير ripple لـAndroid
+      style={({ pressed }) => [
+        styles.card,
+        pressed && styles.cardPressed,  // تغذية راجعة للضغط على iOS
+      ]}
+    >
+      <Text>{product.name}</Text>
+    </Pressable>
+  )
+}
+```
+
+تتعامل المهارة مع فروق المنصات تلقائياً: `android_ripple` لتغذية اللمس الراجعة بتصميم Material، ونمط دالة `style` لحالات الضغط على iOS، ومعاملات التنقل المكتوبة التي تلتقط أخطاء routes في وقت الترجمة.
+
+## Flutter: تحسين شجرة الـWidget
+
+نموذج أداء Flutter مختلف عن React Native — كل شيء widget، والرسم يحدث بشكل مختلف، والتحسين يعني أشياء مختلفة.
+
+### إدارة الحالة مع Riverpod
+
+```dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+// المزودون عالميون ومخزّنون/مُتخلَّص منهم تلقائياً
+final productListProvider = FutureProvider.family<List<Product>, String>(
+  (ref, categoryId) async {
+    final repository = ref.watch(productRepositoryProvider);
+    return repository.fetchByCategory(categoryId);
+  },
+);
+
+// Notifier للحالة المعقدة
+class CartNotifier extends AutoDisposeNotifier<CartState> {
+  @override
+  CartState build() => const CartState.empty();
+
+  void addItem(Product product, int quantity) {
+    state = state.copyWith(
+      items: [...state.items, CartItem(product: product, quantity: quantity)],
+    );
+  }
+
+  void removeItem(String productId) {
+    state = state.copyWith(
+      items: state.items.where((item) => item.product.id != productId).toList(),
+    );
+  }
+}
+
+final cartProvider = NotifierProvider.autoDispose<CartNotifier, CartState>(
+  CartNotifier.new,
+);
+
+// Widget يستهلك المزوّد
+class ProductListScreen extends ConsumerWidget {
+  final String categoryId;
+  const ProductListScreen({required this.categoryId, super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final productsAsync = ref.watch(productListProvider(categoryId));
+
+    return productsAsync.when(
+      loading: () => const ProductListSkeleton(),
+      error: (error, stack) => ErrorView(error: error, onRetry: () =>
+        ref.invalidate(productListProvider(categoryId))),
+      data: (products) => ProductGrid(products: products),
+    );
+  }
+}
+```
+
+تختار مهارة `flutter-expert` Riverpod لأمانه في وقت الترجمة، والتخلص التلقائي (`autoDispose`)، ومُعدِّل `family` للمزودين ذوي المعاملات. نمط `.when()` يتعامل مع جميع الحالات الثلاث للـasync بشكل نظيف.
+
+### الرسم المخصص لواجهة مميزة
+
+```dart
+class RadialProgressPainter extends CustomPainter {
+  final double progress;  // من 0.0 إلى 1.0
+  final Color backgroundColor;
+  final Color progressColor;
+  final double strokeWidth;
+
+  const RadialProgressPainter({
+    required this.progress,
+    this.backgroundColor = const Color(0xFFE0E0E0),
+    this.progressColor = const Color(0xFF2563EB),
+    this.strokeWidth = 8.0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.shortestSide - strokeWidth) / 2;
+
+    final backgroundPaint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    final progressPaint = Paint()
+      ..color = progressColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    // دائرة الخلفية
+    canvas.drawCircle(center, radius, backgroundPaint);
+
+    // قوس التقدم
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2,            // ابدأ من الأعلى
+      2 * math.pi * progress,  // زاوية الاجتياح بناءً على التقدم
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(RadialProgressPainter oldDelegate) =>
+    progress != oldDelegate.progress;
+}
+```
+
+المهارة تعرف `shouldRepaint` — إعادة `false` عندما لا يتغير شيء هي تحسين Flutter حاسم يمنع إعادة الرسم غير الضرورية.
+
+## أنماط الكود الخاصة بالمنصة
+
+Cross-platform لا تعني متطابقة. مهارة `react-native-expert` تعرف متى تتفرع حسب المنصة:
+
+```tsx
+import { Platform, StyleSheet } from 'react-native'
+
+const styles = StyleSheet.create({
+  shadow: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+    },
+    android: {
+      elevation: 4,
+    },
+  }),
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: Platform.OS === 'ios' ? '600' : 'bold',
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+    }),
+  },
+})
+```
+
+تعمل الظلال بشكل مختلف تماماً بين iOS (خصائص الظل) وAndroid (elevation). تستخدم الطباعة خطوط النظام بشكل مختلف. تتعامل المهارة مع هذه الفروق بصمت، وتنتج كوداً يبدو صحيحاً على كلا المنصتين.
+
+## التعامل مع الروابط العميقة وإشعارات Push
+
+هاتان الميزتان تُعثران تقريباً كل تطبيق موبايل في مرحلة ما. تتعامل المهارة معهما بشكل صحيح:
+
+```tsx
+// إعداد الرابط العميق
+const linking = {
+  prefixes: ['myapp://', 'https://myapp.com'],
+  config: {
+    screens: {
+      Home: '',
+      ProductDetail: 'products/:productId',
+      OrderConfirmation: {
+        path: 'orders/:orderId/confirmation',
+        parse: { orderId: (id: string) => id },
+      },
+    },
+  },
+}
+
+// معالجة الإشعارات
+import notifee, { EventType } from '@notifee/react-native'
+
+async function setupNotifications() {
+  // طلب الإذن (يتطلب iOS إذناً صريحاً)
+  const settings = await notifee.requestPermission()
+  if (settings.authorizationStatus < AuthorizationStatus.AUTHORIZED) {
+    return
+  }
+
+  // إنشاء قناة Android (مطلوبة لـAndroid 8+)
+  await notifee.createChannel({
+    id: 'orders',
+    name: 'تحديثات الطلبات',
+    importance: AndroidImportance.HIGH,
+    vibration: true,
+    sound: 'default',
+  })
+}
+
+// معالجة نقرات الإشعار من حالة الخلفية/الإيقاف
+notifee.onBackgroundEvent(async ({ type, detail }) => {
+  if (type === EventType.PRESS) {
+    const { notification } = detail
+    if (notification?.data?.orderId) {
+      // التنقل لتفاصيل الطلب — يجب المعالجة بعد فتح التطبيق
+      await AsyncStorage.setItem('pendingDeepLink', `/orders/${notification.data.orderId}`)
+    }
+  }
+})
+```
+
+تتعامل المهارة مع: iOS يتطلب طلبات إذن صريحة (Android 13+ أيضاً)، وAndroid 8+ يتطلب قنوات إشعار، ومعالجات الأحداث في الخلفية تعمل قبل تحميل التطبيق بالكامل، وتنقل الرابط العميق يحتاج للانتظار حتى يكون navigator جاهزاً.
+
+## Swift لـiOS الأصيل
+
+عندما يكون أداء iOS الأصيل حاسماً، تنتج مهارة `swift-expert` Swift حديث:
+
+```swift
+import SwiftUI
+import Combine
+
+// شبكات async/await حديثة
+actor ProductRepository {
+    private let apiClient: APIClient
+    private var cache: [String: Product] = [:]
+
+    init(apiClient: APIClient) {
+        self.apiClient = apiClient
+    }
+
+    func fetchProduct(id: String) async throws -> Product {
+        if let cached = cache[id] {
+            return cached
+        }
+
+        let product = try await apiClient.fetch(Product.self, path: "/products/\(id)")
+        cache[id] = product
+        return product
+    }
+}
+
+// SwiftUI view مع إدارة حالة صحيحة
+struct ProductDetailView: View {
+    let productId: String
+    @StateObject private var viewModel: ProductDetailViewModel
+
+    init(productId: String) {
+        self.productId = productId
+        _viewModel = StateObject(wrappedValue: ProductDetailViewModel(productId: productId))
+    }
+
+    var body: some View {
+        Group {
+            switch viewModel.state {
+            case .loading:
+                ProgressView()
+            case .loaded(let product):
+                ProductContent(product: product)
+            case .error(let error):
+                ErrorView(error: error, retry: viewModel.load)
+            }
+        }
+        .task { await viewModel.load() }
+        .navigationTitle(viewModel.state.product?.name ?? "")
+    }
+}
+```
+
+المهارة تستخدم `actor` للحالة المشتركة الآمنة للخيط (Swift Concurrency)، و`@StateObject` بدلاً من `@ObservedObject` لنماذج view المملوكة للـview، و`.task { }` بدلاً من `.onAppear { Task { ... } }` للعمل غير المتزامن المرتبط بدورة الحياة.
+
+## البدء
+
+1. ثبّت SuperSkills في `~/.claude/skills/`
+2. افتح مشروع الموبايل الخاص بك في Claude Code
+3. تنشط المهارات بناءً على سياق المشروع — React Native لملفات `.tsx` مع imports لـRN، وFlutter لملفات `.dart`
+4. ابدأ البناء: "أضف pull-to-refresh لهذه الشاشة"، "اضبط deep linking للتطبيق"، "أنشئ شريط تبويب متحرك مخصص"
+
+أول مكوّن يبنيه Claude يتعامل مع التصميم الخاص بالمنصة، ويستخدم تصيير قوائم محسّن، ويكتب routes التنقل بشكل صحيح دون جولات متعددة من التغذية الراجعة — تلك هي اللحظة التي يبدأ فيها تطوير الموبايل مع الذكاء الاصطناعي بالشعور المختلف حقاً.
+
+---
+
+*احصل على 106 مهارات SuperSkills بما فيها مجموعة تطوير الموبايل الكاملة — [نزّلها بـ $50](/#pricing) وبنِ تطبيقات موبايل أفضل من اليوم.*

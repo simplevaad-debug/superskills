@@ -1,0 +1,279 @@
+---
+title: "Claude Code لمهندسي DevOps"
+description: "كيف يستخدم مهندسو DevOps مهارات Claude Code لأتمتة البنية التحتية وكتابة Dockerfiles أفضل وإدارة Kubernetes كالمحترفين."
+date: "2026-03-12"
+author: "SuperSkills"
+tags: ["claude code", "devops", "docker", "kubernetes", "بنية تحتية"]
+category: "حالة استخدام"
+---
+
+عمل DevOps مطلوب ومكثّف. أنت تتنقل بين Dockerfiles ومانيفستات Kubernetes ووحدات Terraform وخطوط CI/CD وإعدادات المراقبة — في الغالب عبر مشاريع متعددة بتقنيات مختلفة. كل خطأ في كود البنية التحتية يكلّف وقتاً حقيقياً وقد يتسبب في إيقاف الإنتاج.
+
+Claude Code، عند تجهيزه بالمهارات المناسبة، يتحول إلى خبير بنية تحتية يعرف تقنيتك ويتبع أفضل الممارسات ولا ينسى أبداً إضافة فحوصات الصحة.
+
+## مهارات DevOps في مجموعة SuperSkills
+
+هذه المهارات الأربع مصمَّمة خصيصاً لعمل البنية التحتية:
+
+**`devops-engineer`** — المهارة الشاملة. تغطي الحاويات والتنسيق وCI/CD وأساسيات البنية التحتية. تطبق افتراضيات منطقية عبر جميع أدوات DevOps.
+
+**`kubernetes-specialist`** — خبرة K8s عميقة: حدود موارد صحيحة، مسابر readiness/liveness، RBAC، سياسات الشبكة، بنية مخطط Helm، ومانيفستات جاهزة للإنتاج.
+
+**`terraform-engineer`** — أفضل ممارسات Infrastructure as Code: بنية الوحدات، تكوين remote state، إدارة المتغيرات، إصدار المزودين، واستراتيجيات مساحة العمل.
+
+**`monitoring-expert`** — التركيز على قابلية الملاحظة: مقاييس Prometheus، لوحات تحكم Grafana، قواعد التنبيه، أنماط تجميع السجلات، وتعريفات SLI/SLO.
+
+هذه المهارات لا تعمل باستقلالية — بل تتراكم. تحميل كل من `devops-engineer` و`kubernetes-specialist` يمنح Claude معرفة K8s عميقة مبنية على مبادئ DevOps الأشمل.
+
+## سيناريو حقيقي: كتابة Dockerfiles
+
+### بدون مهارة
+
+اطلب من Claude "اكتب Dockerfile لتطبيق Node.js" بدون أي مهارة، وستحصل على الأرجح على شيء وظيفي لكن ساذج:
+
+```dockerfile
+FROM node:18
+WORKDIR /app
+COPY . .
+RUN npm install
+EXPOSE 3000
+CMD ["node", "index.js"]
+```
+
+يعمل في التطوير. في الإنتاج، إنه مشكلة: يعمل كـroot، يشمل تبعيات التطوير، لا يوجد فحص صحة، يكشف حزماً غير ضرورية، ويُنشئ صورة كبيرة من دليل المصدر الكامل.
+
+### مع مهارة `devops-engineer`
+
+نفس الطلب مع المهارة النشطة ينتج Dockerfile متعدد المراحل ومتصلّباً:
+
+```dockerfile
+# مرحلة البناء
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# مرحلة التشغيل
+FROM node:20-alpine AS runtime
+RUN addgroup -g 1001 -S nodejs && adduser -S nodeuser -u 1001
+WORKDIR /app
+COPY --from=builder --chown=nodeuser:nodejs /app/node_modules ./node_modules
+COPY --chown=nodeuser:nodejs . .
+USER nodeuser
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget -qO- http://localhost:3000/health || exit 1
+CMD ["node", "--max-old-space-size=512", "index.js"]
+```
+
+المهارة تعرف: استخدام Alpine للصور الأصغر، بناءات متعددة المراحل لاستبعاد artifacts البناء، إنشاء مستخدم غير root، تعيين الملكية الصحيحة، إضافة فحص الصحة، وتمرير حدود الذاكرة لـNode.
+
+هذا هو الفرق بين Dockerfile يعمل وآخر جاهز للإنتاج.
+
+## سيناريو حقيقي: مانيفستات Kubernetes
+
+### بدون مهارة
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-app
+        image: my-app:latest
+        ports:
+        - containerPort: 3000
+```
+
+المفقود: حدود الموارد (حتى لا يُجوّع pod واحد العقدة)، مسابر liveness/readiness (حتى يتمكن Kubernetes من معرفة متى يكون التطبيق سليماً)، ميزانيات انقطاع Pod، سياق الأمان، وتحديد الصور بشكل صحيح.
+
+### مع مهارة `kubernetes-specialist`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  labels:
+    app: my-app
+    version: "1.2.3"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: my-app
+        version: "1.2.3"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: my-app
+        image: registry.example.com/my-app:1.2.3
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: my-app-pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: my-app
+```
+
+المهارة تضيف كل ما فاته المانيفست الأساسي — وهي تعرف سبب أهمية كل حقل.
+
+## سيناريو حقيقي: خطوط CI/CD
+
+يقضي مهندسو DevOps وقتاً كبيراً في كتابة وتصحيح تكوينات خط الأنابيب. مع مهارة `devops-engineer`، يفهم Claude أفضل ممارسات خط الأنابيب عبر GitHub Actions وGitLab CI وأنظمة أخرى.
+
+اطلب: "اكتب GitHub Actions workflow لتطبيق Node.js مع الاختبارات والـlint وبناء Docker والنشر على Kubernetes."
+
+المهارة تضمن أن Claude سيقوم بـ:
+- تخزين التبعيات مؤقتاً بشكل صحيح (توفير دقائق لكل تشغيل)
+- تشغيل lint والاختبارات بالتوازي حيثما أمكن
+- استخدام matrix builds لاختبار إصدارات متعددة
+- بناء ودفع صور Docker بوسم صحيح (branch، commit SHA، semver)
+- استخدام OIDC authentication بدلاً من بيانات اعتماد طويلة الأمد
+- النشر مع التحقق من الطرح والرجوع التلقائي عند الفشل
+- تخزين الأسرار بشكل صحيح عبر GitHub secrets، وليس مضمّنة في الكود
+
+```yaml
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint & npm run test -- --coverage
+        # تنفيذ متوازٍ
+
+  build:
+    needs: quality
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: Build and push
+        run: |
+          IMAGE_TAG="${{ github.sha }}"
+          docker build -t $ECR_REGISTRY/$IMAGE_NAME:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+```
+
+## سيناريو حقيقي: وحدات Terraform
+
+تستفيد Infrastructure as Code استفادة هائلة من الأنماط المتسقة. تضمن مهارة `terraform-engineer` أن Claude يكتب Terraform يتبع أفضل ممارسات الوحدات:
+
+- متغيرات بأنواع وأوصاف وقواعد تحقق صحيحة
+- مخرجات تكشف ما تحتاجه الوحدات الأخرى
+- Remote state مع قفل عبر S3 + DynamoDB أو Terraform Cloud
+- تثبيت إصدارات المزوّد لمنع الترقيات المفاجئة
+- معايير الوسم مطبّقة باتساق عبر جميع الموارد
+- مصادر البيانات للإشارة إلى البنية التحتية الموجودة، وليس معرفات مُضمَّنة
+
+وحدة قاعدة البيانات المكتوبة بدون المهارة قد تُضمّن فئة الجهاز وتتخطى التشفير. مع المهارة، يضيف Claude تلقائياً `encrypted = true`، ويستخدم متغيراً لفئة الجهاز بقيمة افتراضية معقولة وقائمة بالقيم المسموحة، ويضيف تهيئة مجموعة المعاملات، ويمكّن النسخ الاحتياطي التلقائي مع فترة احتفاظ قابلة للتكوين، ويصنّف كل شيء لتوزيع التكاليف.
+
+## سيناريو حقيقي: المراقبة وقابلية الملاحظة
+
+تُحوّل مهارة `monitoring-expert` طريقة تعامل Claude مع متطلبات قابلية الملاحظة. أعطه خدمة واطلب إعداد المراقبة، وستحصل على:
+
+- **مقاييس Prometheus** — طريقة RED (المعدل، الأخطاء، المدة) مُجهَّزة بشكل صحيح في التطبيق
+- **لوحة تحكم Grafana** كـJSON مع اللوحات الرئيسية: معدل الطلبات، معدل الخطأ، النسب المئوية للكمون (p50/p95/p99)، واستخدام الموارد
+- **قواعد التنبيه** — تعريفات تنبيه Prometheus جاهزة لـPagerDuty مع labels للخطورة الصحيحة وروابط دفاتر التشغيل وعتبات واقعية مبنية على SLOs
+- **أنماط السجلات** — تسجيل JSON منظّم مع trace IDs للارتباط
+
+بدون المهارة، يعطيك Claude نصائح مراقبة عامة. معها، تحصل على تكوين قابلية ملاحظة بمستوى الإنتاج.
+
+## التأثير التراكمي
+
+القوة الحقيقية ليست في أي مهارة بمفردها — بل في تحميل مهارات متعددة للمهام المعقدة.
+
+قد تحتوي جلسة DevOps نموذجية على `devops-engineer` و`kubernetes-specialist` و`terraform-engineer` كلها نشطة. عندما تطلب من Claude "إعداد microservice جديد مع نشر Kubernetes وبنية تحتية Terraform ومراقبة"، فإنه يستمد من جميع هيئات المهارات الثلاث في آنٍ واحد.
+
+النتيجة هي كود بنية تحتية متماسك يتبع أنماطاً متسقة عبر جميع الطبقات — شيء يتطلب عادةً مهندساً أول يعرف المجالات الثلاثة جيداً.
+
+## البدء مع مهارات DevOps
+
+1. ثبّت مجموعة SuperSkills في `~/.claude/skills/`
+2. شغّل Claude Code في مستودع البنية التحتية الخاص بك
+3. تنشط المهارات تلقائياً بناءً على سياقك وأنواع الملفات
+4. اطلب ما تحتاجه: "اكتب Dockerfile"، "أنشئ K8s deployment"، "اكتب وحدة Terraform لـRDS"
+5. راجع المخرج — سيكون جاهزاً للإنتاج من البداية
+
+في المرة الأولى التي يكتب فيها Claude لك Dockerfile متصلّب ومتعدد المراحل مع مستخدم غير root وفحوصات صحة دون أن تطلب ذلك، ستفهم لماذا هذه المهارات مهمة.
+
+---
+
+*احصل على 106 مهارات SuperSkills بما فيها مجموعة DevOps الكاملة — [نزّلها بـ $50](/pricing) وانشر بنية تحتية أفضل من اليوم.*

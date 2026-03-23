@@ -1,0 +1,308 @@
+---
+title: "Database Optimization with Claude Code"
+description: "How to optimize database queries, design better schemas, and improve performance using Claude Code's database skills."
+date: "2026-01-28"
+author: "SuperSkills"
+tags: ["database", "optimization", "postgresql", "mysql", "claude code"]
+category: "Tutorial"
+---
+
+Database performance is where most applications eventually hit their ceiling. The feature that worked fine at 1,000 users starts grinding at 100,000. Queries that ran in milliseconds start taking seconds. Engineers stare at EXPLAIN output trying to understand why.
+
+Claude Code, equipped with database-focused skills, becomes an experienced DBA that reads query plans, designs indexes, spots N+1 patterns, and rewrites slow queries before they reach production.
+
+## Database Skills in the SuperSkills Collection
+
+Three skills handle the full spectrum of database work:
+
+**`database-optimizer`** — The performance specialist. Analyzes slow queries, reads EXPLAIN/EXPLAIN ANALYZE output, identifies missing indexes, and rewrites queries for better execution plans. Knows the difference between a sequential scan that's acceptable and one that's killing performance.
+
+**`postgres-pro`** — PostgreSQL-specific expertise. Covers advanced Postgres features: CTEs, window functions, partial indexes, JSONB operations, pg_stat_statements analysis, autovacuum tuning, and connection pooling with PgBouncer. For when you're going deep on Postgres.
+
+**`sql-pro`** — SQL craftsmanship across engines. Writes clean, efficient SQL that works whether you're on PostgreSQL, MySQL, SQLite, or SQL Server. Covers query optimization principles, schema design, and the SQL patterns that every database engineer needs.
+
+## Reading EXPLAIN Output
+
+`EXPLAIN ANALYZE` is the most powerful diagnostic tool in a database engineer's arsenal — and also the most misread. The `database-optimizer` skill teaches Claude to interpret execution plans correctly.
+
+A slow query:
+
+```sql
+SELECT u.name, COUNT(o.id) as order_count, SUM(o.total) as revenue
+FROM users u
+JOIN orders o ON u.id = o.user_id
+WHERE o.created_at > '2026-01-01'
+GROUP BY u.id, u.name
+ORDER BY revenue DESC;
+```
+
+Running `EXPLAIN ANALYZE` without the skill, Claude might note "there's a sequential scan." With the `database-optimizer` skill active, Claude reads the full plan:
+
+```
+Hash Join  (cost=2847.00..8923.45 rows=12483 width=48) (actual time=234.521..891.432 rows=8742 loops=1)
+  Hash Cond: (o.user_id = u.id)
+  ->  Seq Scan on orders o  (cost=0.00..4821.00 rows=89234 width=16)
+        (actual time=0.012..312.445 rows=89234 loops=1)
+        Filter: (created_at > '2026-01-01')
+        Rows Removed by Filter: 234521
+  ->  Hash  (cost=1823.00..1823.00 rows=82000 width=36)
+        (actual time=198.234..198.234 rows=82000 loops=1)
+        Buckets: 131072  Batches: 1  Memory Usage: 5234kB
+        ->  Seq Scan on users u  (cost=0.00..1823.00 rows=82000 width=36)
+```
+
+The skill identifies: the filter on `orders.created_at` is removing 234,521 rows after reading them all — a missing index. The users table is being fully scanned for a hash build, which might be acceptable at 82K rows but will scale badly. It recommends:
+
+```sql
+-- Index to support the date filter
+CREATE INDEX idx_orders_created_at ON orders (created_at);
+
+-- If the query is always filtered by date + user, a composite index is better
+CREATE INDEX idx_orders_user_created ON orders (user_id, created_at);
+```
+
+## Index Design
+
+The `database-optimizer` skill understands index strategy beyond "create an index on the column in the WHERE clause."
+
+### Partial Indexes (PostgreSQL)
+
+When you only ever query a subset of rows, index just that subset:
+
+```sql
+-- Only index active users — 10% of the table
+-- Full index would be 10x larger and include rows you never query
+CREATE INDEX idx_users_active_email ON users (email)
+WHERE status = 'active';
+
+-- Only index unpaid invoices
+CREATE INDEX idx_invoices_unpaid ON invoices (due_date, customer_id)
+WHERE paid_at IS NULL;
+```
+
+### Covering Indexes
+
+When a query only needs indexed columns, PostgreSQL can answer it entirely from the index — no heap access needed:
+
+```sql
+-- Query: SELECT email, name FROM users WHERE plan = 'pro'
+-- Without covering index: index lookup → heap fetch for each row
+-- With covering index: answered entirely from the index
+CREATE INDEX idx_users_plan_covering ON users (plan) INCLUDE (email, name);
+```
+
+### Composite Index Column Order
+
+The `sql-pro` skill enforces correct column ordering in composite indexes — equality conditions before range conditions:
+
+```sql
+-- Query: WHERE tenant_id = $1 AND created_at > $2 AND status = $3
+
+-- WRONG — range condition in middle breaks index use for status
+CREATE INDEX bad_idx ON events (tenant_id, created_at, status);
+
+-- RIGHT — equality conditions first, range condition last
+CREATE INDEX good_idx ON events (tenant_id, status, created_at);
+```
+
+## N+1 Query Detection
+
+N+1 is the most common ORM performance problem. The `database-optimizer` skill catches it immediately.
+
+### The Pattern
+
+```python
+# N+1 in SQLAlchemy — 1 query for users + N queries for orders
+users = User.query.all()
+for user in users:
+    print(f"{user.name}: {len(user.orders)} orders")
+    # This triggers a new query for each user
+```
+
+For 1,000 users, this executes 1,001 queries. The skill recognizes the pattern and rewrites it:
+
+```python
+# Fixed — 1 query with JOIN, loaded eagerly
+from sqlalchemy.orm import joinedload
+
+users = User.query.options(joinedload(User.orders)).all()
+for user in users:
+    print(f"{user.name}: {len(user.orders)} orders")
+    # orders already loaded — no additional queries
+```
+
+Or if you only need the count:
+
+```python
+from sqlalchemy import func
+
+users = db.session.query(
+    User.name,
+    func.count(Order.id).label('order_count')
+).outerjoin(Order).group_by(User.id, User.name).all()
+```
+
+One query. Zero N+1.
+
+## Schema Normalization
+
+The `database-optimizer` skill evaluates schemas for normalization issues that cause both data integrity problems and performance problems:
+
+**Before — denormalized:**
+
+```sql
+CREATE TABLE orders (
+    id BIGSERIAL PRIMARY KEY,
+    customer_name VARCHAR(255),
+    customer_email VARCHAR(255),
+    customer_address TEXT,
+    -- customer data repeated in every order
+    product_name VARCHAR(255),
+    product_price DECIMAL(10,2),
+    -- product data repeated in every order line
+    quantity INT,
+    total DECIMAL(10,2)
+);
+```
+
+Problems: updating a customer's address requires updating every order row. Products can have inconsistent prices across orders referencing the same product.
+
+**After — normalized:**
+
+```sql
+CREATE TABLE customers (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE products (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    base_price DECIMAL(10,2) NOT NULL
+);
+
+CREATE TABLE orders (
+    id BIGSERIAL PRIMARY KEY,
+    customer_id BIGINT NOT NULL REFERENCES customers(id),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    status VARCHAR(50) DEFAULT 'pending'
+);
+
+CREATE TABLE order_items (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL REFERENCES orders(id),
+    product_id BIGINT NOT NULL REFERENCES products(id),
+    quantity INT NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,  -- captured at time of purchase
+    total DECIMAL(10,2) GENERATED ALWAYS AS (quantity * unit_price) STORED
+);
+```
+
+## Table Partitioning
+
+For large tables (100M+ rows), partitioning transforms query performance. The `postgres-pro` skill implements it correctly:
+
+```sql
+-- Partition orders table by month
+CREATE TABLE orders (
+    id BIGSERIAL,
+    customer_id BIGINT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    total DECIMAL(10,2)
+) PARTITION BY RANGE (created_at);
+
+-- Create monthly partitions
+CREATE TABLE orders_2026_01 PARTITION OF orders
+    FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
+
+CREATE TABLE orders_2026_02 PARTITION OF orders
+    FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
+
+-- Indexes on parent table apply to all partitions
+CREATE INDEX idx_orders_customer ON orders (customer_id, created_at);
+```
+
+Queries filtered by `created_at` will now only scan the relevant partition instead of the entire table.
+
+## Connection Pooling
+
+Database connections are expensive. Every connection requires memory on the server, and opening connections adds latency. The `postgres-pro` skill sets up PgBouncer correctly:
+
+```ini
+# pgbouncer.ini
+[databases]
+myapp = host=localhost port=5432 dbname=myapp
+
+[pgbouncer]
+pool_mode = transaction          # Best for most web apps
+max_client_conn = 1000           # Max connections from app
+default_pool_size = 20           # Connections to Postgres per database
+reserve_pool_size = 5            # Emergency connections
+reserve_pool_timeout = 3
+server_idle_timeout = 600
+client_idle_timeout = 0
+```
+
+In transaction mode, the database gets 20 connections regardless of how many application threads connect. A Node.js app with 100 worker threads no longer opens 100 Postgres connections — it uses 20, pooled efficiently.
+
+## Before/After: A Real Optimization
+
+A report query on an e-commerce database, running at 8.2 seconds:
+
+```sql
+-- BEFORE: 8.2 seconds
+SELECT
+    p.category,
+    DATE_TRUNC('month', o.created_at) as month,
+    COUNT(DISTINCT o.customer_id) as unique_customers,
+    SUM(oi.quantity * oi.unit_price) as revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.id
+JOIN products p ON oi.product_id = p.id
+WHERE o.created_at BETWEEN '2025-01-01' AND '2026-01-01'
+GROUP BY p.category, DATE_TRUNC('month', o.created_at)
+ORDER BY month, revenue DESC;
+```
+
+With `database-optimizer`, the skill analyzes the execution plan and recommends three changes:
+
+1. **Add a composite index** on `orders(created_at, id)` to support the date range filter
+2. **Add an index** on `order_items(order_id)` for the JOIN
+3. **Rewrite** using a CTE to materialize the filtered orders first
+
+```sql
+-- AFTER: 0.4 seconds
+WITH monthly_orders AS (
+    SELECT id, customer_id, created_at
+    FROM orders
+    WHERE created_at BETWEEN '2025-01-01' AND '2026-01-01'
+)
+SELECT
+    p.category,
+    DATE_TRUNC('month', mo.created_at) as month,
+    COUNT(DISTINCT mo.customer_id) as unique_customers,
+    SUM(oi.quantity * oi.unit_price) as revenue
+FROM order_items oi
+JOIN monthly_orders mo ON oi.order_id = mo.id
+JOIN products p ON oi.product_id = p.id
+GROUP BY p.category, DATE_TRUNC('month', mo.created_at)
+ORDER BY month, revenue DESC;
+```
+
+20x faster. Same result. The skill identified the execution plan problem and rewrote the query to let the planner use the indexes efficiently.
+
+## Getting Started with Database Skills
+
+1. Install the SuperSkills collection to `~/.claude/skills/`
+2. Load `database-optimizer` when investigating slow queries — paste in your EXPLAIN output and ask for analysis
+3. Load `postgres-pro` for PostgreSQL-specific work: schema design, advanced features, configuration tuning
+4. Load `sql-pro` for cross-engine SQL writing and review
+5. Ask directly: "Analyze this execution plan," "Find N+1 issues in this code," or "Design an index for this query pattern"
+
+Database performance problems compound. A slow query that takes 2 seconds today takes 20 seconds when your data 10x's — and you won't notice until it's an incident. Getting the skills active during development prevents the debt.
+
+---
+
+*Get all 106 SuperSkills including the complete database suite — [download for $50](/#pricing) and start writing faster queries today.*

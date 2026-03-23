@@ -1,0 +1,261 @@
+---
+title: "Automating Code Reviews with Claude Code"
+description: "How to use Claude Code to automate code reviews — catching bugs, security issues, and code smells before they reach production."
+date: "2026-02-04"
+author: "SuperSkills"
+tags: ["code review", "automation", "claude code", "quality"]
+category: "Tutorial"
+---
+
+Code review is one of the highest-leverage activities in software development. A good review catches bugs, prevents security vulnerabilities, improves code design, and spreads knowledge across the team. But reviews are also time-consuming — and when developers are busy, they get rushed or skipped.
+
+The `code-reviewer` skill gives Claude the judgment of a senior engineer, letting you automate the parts of code review that don't require human context while freeing your team to focus on the decisions that do.
+
+---
+
+## What AI Can Catch That Humans Miss
+
+AI code review excels at systematic, pattern-based analysis. These are categories where Claude consistently outperforms human reviewers:
+
+**Logical bugs:**
+- Off-by-one errors
+- Missing edge cases (empty array, zero, null)
+- Incorrect comparisons (`==` vs `===`, `<` vs `<=`)
+- Async/await mistakes (missing await, unhandled rejections)
+
+**Security vulnerabilities:**
+- SQL injection via string concatenation
+- XSS vulnerabilities in template literals
+- Hardcoded secrets or API keys
+- Improper input sanitization
+- Insecure direct object references (IDOR)
+
+**Performance issues:**
+- N+1 query patterns (database queries inside loops)
+- Missing database indexes (detectable from query patterns)
+- Unnecessary re-renders in React components
+- Large bundle imports when a smaller subset would do
+
+**Code quality:**
+- Inconsistent naming conventions
+- Functions that do too many things
+- Magic numbers without explanation
+- Copy-pasted code that should be abstracted
+
+**What AI misses:** Context. The reviewer doesn't know that this code is a temporary workaround, that this team has agreed to use this non-standard pattern, or that this security tradeoff was a deliberate product decision. That's why AI review supplements, rather than replaces, human review.
+
+---
+
+## The Code Reviewer Skill in Practice
+
+The `code-reviewer` skill activates automatically when you ask Claude to review code, check a PR, or look for issues. It applies a structured analysis rather than just commenting on what looks off.
+
+**Basic usage:**
+
+```
+Paste your code and ask:
+"Review this code for bugs, security issues, and code quality.
+Prioritize the most serious issues first."
+```
+
+Claude will respond with a structured review:
+
+```
+## Critical Issues
+
+**Security: SQL Injection (Line 23)**
+The query is built using string interpolation:
+```js
+const query = `SELECT * FROM users WHERE email = '${email}'`;
+```
+This allows an attacker to inject SQL. Use parameterized queries:
+```js
+const query = 'SELECT * FROM users WHERE email = $1';
+await db.query(query, [email]);
+```
+
+## High Priority Issues
+
+**Bug: Missing await (Line 45)**
+`sendEmail(user.email)` is called without await. If it throws,
+the error won't be caught by the surrounding try/catch.
+
+## Medium Priority
+
+**N+1 Query (Lines 67-72)**
+This loop calls `getProductById` for each order item separately.
+This will make N database calls for N items. Use a batch query instead.
+```
+
+This structure — critical, high, medium, low — means you can triage immediately and fix the most important issues first.
+
+---
+
+## Integrating into Your Development Workflow
+
+The real power of AI code review is making it automatic — so you don't have to remember to do it.
+
+**Option 1: Pre-commit hook**
+
+Review code before every commit:
+
+```bash
+# .git/hooks/pre-commit
+#!/bin/sh
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx|py)$')
+if [ -n "$FILES" ]; then
+  echo "Running AI code review..."
+  # pipe changed files to Claude review script
+  echo "$FILES" | xargs cat | claude --skill code-reviewer --prompt "Quick review: flag any critical issues"
+fi
+```
+
+**Option 2: PR review via GitHub Actions**
+
+Automatically review every pull request:
+
+```yaml
+# .github/workflows/ai-review.yml
+name: AI Code Review
+on: [pull_request]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed
+        run: |
+          git diff origin/${{ github.base_ref }}...HEAD --name-only > changed_files.txt
+
+      - name: AI Review
+        run: |
+          # Your Claude Code review script here
+          cat changed_files.txt | xargs cat | claude-review
+```
+
+**Option 3: IDE integration**
+
+Use Claude Code's VS Code integration to review code on demand — select a function, right-click, "Review with Claude."
+
+---
+
+## Before and After: Real Examples
+
+**Before (submitted to review):**
+```javascript
+app.get('/user/:id', (req, res) => {
+  const id = req.params.id;
+  db.query(`SELECT * FROM users WHERE id = ${id}`, (err, result) => {
+    if (result.rows.length > 0) {
+      res.json(result.rows[0]);
+    }
+  });
+});
+```
+
+**After AI review identified:**
+1. SQL injection vulnerability
+2. Missing error handling
+3. No authorization check (any user can get any user's data)
+4. Returning entire user row (may include password hash, sensitive data)
+
+**After (fixed):**
+```javascript
+app.get('/user/:id', authenticate, async (req, res, next) => {
+  try {
+    // Authorization: users can only get their own profile
+    if (req.user.id !== req.params.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const { rows } = await db.query(
+      'SELECT id, name, email, created_at FROM users WHERE id = $1',
+      [req.params.id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+```
+
+That's four security and quality issues caught before a human reviewer even looked at it. The human review can now focus on: does this design make sense? Is this the right approach for our system?
+
+---
+
+## Reviewing for Specific Concerns
+
+The `code-reviewer` skill handles targeted reviews well:
+
+**Security focus:**
+```
+"Review this authentication code specifically for security issues.
+Assume an attacker with knowledge of common web vulnerabilities."
+```
+
+**Performance focus:**
+```
+"Review this API endpoint for performance issues.
+We're expecting ~10,000 requests per minute."
+```
+
+**Refactoring review:**
+```
+"Review this code for maintainability. Flag anything that will be
+hard to understand or modify in 6 months."
+```
+
+**Dependency review:**
+```
+"Review the dependencies in this package.json.
+Flag any with known vulnerabilities, outdated versions, or better alternatives."
+```
+
+---
+
+## What AI Review Doesn't Replace
+
+Be honest about the limitations:
+
+**AI review doesn't replace:**
+- Architecture review (is this the right approach overall?)
+- Business logic review (does this correctly implement the requirements?)
+- Knowledge transfer (understanding *why* decisions were made)
+- Team alignment (ensuring the code fits the team's style and conventions)
+- Security audit for novel attack vectors
+
+The best workflow combines both: AI review runs automatically and catches the systematic issues, human review focuses on context and judgment.
+
+---
+
+## Building a Review Culture
+
+Introducing AI code review to a team works best when you frame it as a tool that makes human reviews better, not one that replaces them.
+
+**Good framing:** "Claude catches the common stuff automatically — SQL injection, missing awaits, N+1 queries. That means when we review each other's PRs, we can spend all our time on the interesting decisions."
+
+**Workflow to introduce:**
+1. Start with individual use — developers review their own code before submitting
+2. Add pre-commit hooks for critical issue detection
+3. Add PR-level automation once the team is comfortable
+4. Review AI suggestions together in retros to calibrate trust
+
+---
+
+## The Bottom Line
+
+Code review automation doesn't eliminate the need for human reviewers. It makes human review more effective by handling the systematic, pattern-based analysis automatically — freeing your team to focus on what humans are uniquely good at: judgment, context, and design.
+
+The `code-reviewer` skill is part of the SuperSkills library. Combined with skills like `security-auditor` and `performance-optimizer`, you get a comprehensive quality layer for everything you ship.
+
+**Ready to ship higher-quality code?** Explore the full SuperSkills library at [/#pricing](/#pricing).

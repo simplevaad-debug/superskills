@@ -1,0 +1,240 @@
+---
+title: "How to Write Better Tests with AI"
+description: "How AI-assisted testing with Claude Code helps you write comprehensive test suites — from unit tests to E2E, with TDD and coverage strategies."
+date: "2026-02-08"
+author: "SuperSkills"
+tags: ["testing", "tdd", "ai testing", "claude code", "playwright"]
+category: "Tutorial"
+---
+
+Most developers know they should write more tests. The problem isn't motivation — it's time. Writing good tests is slow, and writing bad tests is easy. AI-assisted testing with Claude Code flips this equation: you can write a comprehensive test suite in the time it used to take to write a few brittle unit tests.
+
+The `test-master` skill makes Claude an expert in testing strategy, not just test syntax.
+
+---
+
+## Why Most Tests Fail to Prevent Bugs
+
+Before getting into how to write better tests, it's worth understanding why most tests don't work as well as they should.
+
+**Common testing mistakes:**
+- Testing implementation details instead of behavior
+- Only testing the happy path
+- Mocking everything and testing nothing real
+- Writing tests after the fact that confirm existing behavior rather than specify intended behavior
+- Coverage metrics that encourage quantity over quality
+
+The `test-master` skill is trained to avoid all of these patterns. When you ask Claude to write tests, it asks "what should this code do?" before asking "how does this code work?"
+
+---
+
+## The TDD Workflow with AI
+
+Test-Driven Development has always been sound in theory but hard in practice — writing the tests first takes discipline when you can see the implementation right there. AI changes this dynamic.
+
+**AI-first TDD looks like this:**
+
+1. **Describe the feature** to Claude in plain language
+2. **Claude writes the tests** that specify the expected behavior
+3. **You run the tests** — they all fail (red)
+4. **Claude writes the implementation** to make the tests pass (green)
+5. **Claude refactors** to clean up the implementation while keeping tests green
+
+This works because Claude can hold the specification in mind while writing both the tests and the implementation. You don't have to switch context — just describe what you want.
+
+**Example:**
+
+```
+"Write tests for a `createUser` function. It should:
+- Accept name, email, password
+- Validate email format
+- Hash the password before storing
+- Return the created user without the password hash
+- Throw a UserExistsError if email is already taken"
+```
+
+Claude writes tests that check all of these behaviors, including edge cases you might not have thought of — empty strings, SQL injection attempts in the name field, concurrent duplicate registrations.
+
+---
+
+## Unit Testing: What to Test and What to Skip
+
+Not everything needs a unit test. The `test-master` skill helps you identify what's worth testing:
+
+**Test these:**
+- Pure functions with clear inputs and outputs
+- Business logic with multiple branches
+- Validation functions
+- Data transformations
+- Error handling paths
+
+**Skip these (test at a higher level):**
+- Simple getters and setters
+- Framework-provided functionality
+- Third-party library internals
+- One-line wrappers
+
+**Example of a well-structured unit test:**
+
+```typescript
+describe('calculateDiscount', () => {
+  it('applies percentage discount to base price', () => {
+    expect(calculateDiscount(100, { type: 'percentage', value: 20 })).toBe(80);
+  });
+
+  it('applies fixed amount discount', () => {
+    expect(calculateDiscount(100, { type: 'fixed', value: 15 })).toBe(85);
+  });
+
+  it('never returns a negative price', () => {
+    expect(calculateDiscount(10, { type: 'fixed', value: 50 })).toBe(0);
+  });
+
+  it('throws for invalid discount type', () => {
+    expect(() => calculateDiscount(100, { type: 'invalid', value: 10 }))
+      .toThrow('Unknown discount type');
+  });
+});
+```
+
+Notice: each test has one assertion (ideally), tests behavior not implementation, and includes the edge cases (negative price, invalid type).
+
+---
+
+## Integration Testing: The Most Underused Test Type
+
+Unit tests test functions in isolation. E2E tests test the full application. Integration tests test the seams — where different parts of your system connect. These are the most valuable tests and the most neglected.
+
+With Claude Code, integration testing becomes easier:
+
+```
+"Write integration tests for the user registration API endpoint.
+Test the full request/response cycle including database interactions.
+Use a test database that resets between tests."
+```
+
+Claude will write tests that:
+- Spin up a test database (or use an in-memory version)
+- Call the actual API handler
+- Assert on the response status and body
+- Verify the database state after the operation
+- Clean up after each test
+
+This catches an entire class of bugs that unit tests miss: database constraint violations, serialization issues, middleware interactions, and more.
+
+---
+
+## E2E Testing with Playwright
+
+End-to-end tests with Playwright test your application the way a user would. The `test-master` skill knows Playwright deeply — page objects, fixtures, network interception, and visual testing.
+
+**A complete E2E test with Claude:**
+
+```
+"Write a Playwright test for the checkout flow:
+1. Add a product to the cart
+2. Proceed to checkout
+3. Fill in shipping details
+4. Enter test payment (card: 4242424242424242)
+5. Verify the order confirmation page shows the correct order details"
+```
+
+Claude generates a proper test with:
+- Page Object Model for maintainability
+- Proper wait strategies (no arbitrary `sleep()` calls)
+- Network request assertions
+- Visual screenshot on failure
+- Parallel test execution support
+
+---
+
+## Mocking Strategies
+
+Mocking is where tests go wrong most often. Too little mocking and tests are slow and flaky. Too much and you're not testing anything real.
+
+**The `test-master` skill applies these rules:**
+
+1. **Mock at the boundary** — mock the HTTP client, not the function that calls it
+2. **Don't mock what you own** — use real implementations for your own code
+3. **Mock for speed, not convenience** — only mock things that would make tests slow (databases, external APIs, file system)
+4. **Verify mocks** — assert that mocks were called with the right arguments
+
+```typescript
+// Good: mock at the HTTP boundary
+jest.mock('./httpClient');
+const mockHttpClient = httpClient as jest.Mocked<typeof httpClient>;
+
+// Test that your code handles the API response correctly
+mockHttpClient.get.mockResolvedValue({ data: { users: [] } });
+const result = await getUserList();
+expect(result).toEqual([]);
+expect(mockHttpClient.get).toHaveBeenCalledWith('/api/users');
+```
+
+---
+
+## Coverage Analysis
+
+Coverage metrics are useful but misleading if misunderstood. The `test-master` skill helps you interpret coverage reports and identify what actually needs more tests.
+
+**Coverage truth:**
+- 100% coverage doesn't mean bug-free
+- Uncovered code is definitely undertested
+- The most important paths to cover are error paths, not happy paths
+- Branch coverage (every if/else covered) is more meaningful than line coverage
+
+When Claude analyzes your coverage report, it doesn't just point to uncovered lines — it asks "is this uncovered code worth testing?" Sometimes the answer is no.
+
+---
+
+## Common Testing Mistakes (and How to Avoid Them)
+
+**Mistake 1: Testing implementation, not behavior**
+```typescript
+// Bad: tests that the function calls a specific internal method
+expect(spy).toHaveBeenCalledWith('internal_helper');
+
+// Good: tests that the user gets the right result
+expect(result.user.name).toBe('Alice');
+```
+
+**Mistake 2: Overly specific assertions**
+```typescript
+// Bad: breaks if you add a new field to the response
+expect(response).toEqual({ id: 1, name: 'Alice', email: 'alice@example.com' });
+
+// Good: asserts on what matters
+expect(response.name).toBe('Alice');
+expect(response).not.toHaveProperty('password');
+```
+
+**Mistake 3: Tests that don't test failure**
+```typescript
+// Always add at least one test for what happens when things go wrong
+it('returns null for non-existent user', async () => {
+  const result = await getUser('nonexistent-id');
+  expect(result).toBeNull();
+});
+```
+
+---
+
+## Building a Complete Test Suite
+
+A well-rounded test suite for a web application looks like:
+
+- **70% unit tests** — fast, focused, test individual functions
+- **20% integration tests** — test component interactions, especially API routes and database operations
+- **10% E2E tests** — test critical user journeys end-to-end
+
+The `test-master` skill helps you build this pyramid efficiently. When you ask Claude to "add tests for this feature," it considers the full pyramid and writes the right level of test for each part.
+
+---
+
+## Getting Started
+
+The fastest way to start testing better is to describe a feature you're about to build and ask Claude (with `test-master` active) to write the tests first. Run them, watch them fail, then ask Claude to implement the feature. You'll end up with more test coverage and better-structured code than if you'd built it the other way around.
+
+The `test-master` skill is part of the SuperSkills library — 106 skills that make Claude Code an expert in your domain.
+
+**Ready to write tests that actually catch bugs?** See the full skills library at [/#pricing](/#pricing).

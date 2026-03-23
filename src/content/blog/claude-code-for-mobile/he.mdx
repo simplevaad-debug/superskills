@@ -1,0 +1,395 @@
+---
+title: "Claude Code למפתחי מובייל"
+description: "איך מפתחי מובייל משתמשים בסקילי Claude Code לבניית אפליקציות React Native ו-Flutter טובות יותר עם מומחיות מבוססת AI."
+date: "2026-02-24"
+author: "SuperSkills"
+tags: ["claude code", "mobile", "react native", "flutter", "ios", "android"]
+category: "שימוש"
+---
+
+פיתוח מובייל הוא תובעני באופן ייחודי. אתם כותבים קוד שרץ על אלפי הגדרות מכשיר שונות, על שני מערכות הפעלה עם שפות עיצוב נפרדות, עם מגבלות סוללה וזיכרון שאינן קיימות ברשת, ועם תהליכי סקירה בחנויות אפליקציות שיכולים לעכב שיפינג בימים. לקבל את הפרטים הספציפיים לפלטפורמה נכון דורש ידע שלוקח שנים לצבור.
+
+Claude Code עם סקילים ספציפיים למובייל מכווץ את עקומת הלמידה הזו. סקילי `react-native-expert`, `flutter-expert` ו-`swift-expert` מביאים ידע ברמת הפלטפורמה ישירות לזרימת העבודה שלכם — תבניות ניווט, ניהול state, אינטגרציה של native modules, אופטימיזציית ביצועים, ואידיומים ספציפיים לפלטפורמה שמפרידים בין אפליקציות שמשתמשים אוהבים לאפליקציות שמשתמשים עוזבים.
+
+## סקילי מובייל באוסף SuperSkills
+
+**`react-native-expert`** — עומק React Native: ארכיטקטורה חדשה (JSI, Fabric, TurboModules), ניווט עם React Navigation 7, תבניות ניהול state, גישור native modules, פרופיילינג ביצועים, וההבדלים בין Android ל-iOS שנושכים כל מפתח בסופו של דבר.
+
+**`flutter-expert`** — מומחיות Flutter: אופטימיזציית widget tree, ניהול state (Riverpod, Bloc, Provider), ערוצי פלטפורמה, ציור מותאם אישית, מערכת אנימציה, ובנייה ל-iOS, Android ורשת מ-codebase אחד.
+
+**`swift-expert`** — iOS נייטיב: תבניות SwiftUI, אינטגרציית UIKit, Combine ו-async/await, Core Data, networking עם URLSession, וספציפיות פלטפורמת Apple שקובעות אם האפליקציה שלכם תוצג בחנות או תידחה.
+
+## React Native: הארכיטקטורה החדשה
+
+הארכיטקטורה החדשה של React Native (יציבה מאז 2024) משנה את האופן שבו JavaScript גושר לקוד נייטיב. סקיל `react-native-expert` מבין הן את הגשר הישן הן את המערכת החדשה מבוססת-JSI.
+
+### תבניות רכיב לארכיטקטורה החדשה
+
+```tsx
+import React, { useCallback, useMemo } from 'react'
+import { FlatList, View, Text, Pressable, StyleSheet } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import type { RootStackParamList } from '../navigation/types'
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ProductList'>
+
+interface Product {
+  id: string
+  name: string
+  price: number
+  imageUrl: string
+}
+
+interface ProductListProps {
+  products: Product[]
+  onRefresh: () => void
+  refreshing: boolean
+}
+
+export function ProductList({ products, onRefresh, refreshing }: ProductListProps) {
+  const navigation = useNavigation<NavigationProp>()
+
+  // useCallback מונע יצירה מחדש של renderItem בכל render של הורה
+  const renderItem = useCallback(({ item }: { item: Product }) => (
+    <ProductCard
+      product={item}
+      onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
+    />
+  ), [navigation])
+
+  // keyExtractor חייב להיות יציב — לעולם לא להשתמש בindex של מערך
+  const keyExtractor = useCallback((item: Product) => item.id, [])
+
+  // getItemLayout מאפשר scroll-to-index ומדלג על מדידה
+  const getItemLayout = useCallback(
+    (_: unknown, index: number) => ({
+      length: ITEM_HEIGHT,
+      offset: ITEM_HEIGHT * index,
+      index,
+    }),
+    []
+  )
+
+  return (
+    <FlatList
+      data={products}
+      renderItem={renderItem}
+      keyExtractor={keyExtractor}
+      getItemLayout={getItemLayout}
+      onRefresh={onRefresh}
+      refreshing={refreshing}
+      removeClippedSubviews={true}  // מסיר אלמנטים מחוץ למסך ב-Android
+      maxToRenderPerBatch={10}
+      windowSize={5}
+    />
+  )
+}
+
+const ITEM_HEIGHT = 100
+```
+
+הסקיל יודע את מלכודות הביצועים של React Native: יצירה מחדש של `renderItem` בכל render מבטלת את האופטימיזציה של `FlatList`, `getItemLayout` קריטי לרשימות ארוכות, `removeClippedSubviews` עוזר ל-Android ספציפית, ו-`maxToRenderPerBatch` / `windowSize` כוונן את חלון הרינדור.
+
+### בטיחות TypeScript לניווט
+
+```tsx
+// types/navigation.ts
+export type RootStackParamList = {
+  Home: undefined
+  ProductList: { categoryId: string }
+  ProductDetail: { productId: string }
+  Checkout: { items: CartItem[]; total: number }
+  OrderConfirmation: { orderId: string }
+}
+
+// שימוש בניווט עם טיפוסים מלאים
+function ProductCard({ product }: { product: Product }) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'ProductList'>>()
+
+  return (
+    <Pressable
+      onPress={() => navigation.navigate('ProductDetail', { productId: product.id })}
+      android_ripple={{ color: '#e0e0e0' }}  // אפקט ripple ל-Android
+      style={({ pressed }) => [
+        styles.card,
+        pressed && styles.cardPressed,  // משוב לחיצה ל-iOS
+      ]}
+    >
+      <Text>{product.name}</Text>
+    </Pressable>
+  )
+}
+```
+
+הסקיל מטפל בהבדלי פלטפורמה אוטומטית: `android_ripple` למשוב מגע Material Design, תבנית `style` כפונקציה למצבי לחיצה ב-iOS, ופרמטרי ניווט עם טיפוסים שתופסים טעויות route בזמן קומפילציה.
+
+## Flutter: אופטימיזציית Widget Tree
+
+מודל הביצועים של Flutter שונה מ-React Native — הכל הוא widget, הרינדור קורה אחרת, ואופטימיזציה פירושה דברים שונים.
+
+### ניהול State עם Riverpod
+
+```dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+// Providers הם גלובליים ומאוחסנים/מסולקים אוטומטית
+final productListProvider = FutureProvider.family<List<Product>, String>(
+  (ref, categoryId) async {
+    final repository = ref.watch(productRepositoryProvider);
+    return repository.fetchByCategory(categoryId);
+  },
+);
+
+// Notifier ל-state מורכב
+class CartNotifier extends AutoDisposeNotifier<CartState> {
+  @override
+  CartState build() => const CartState.empty();
+
+  void addItem(Product product, int quantity) {
+    state = state.copyWith(
+      items: [...state.items, CartItem(product: product, quantity: quantity)],
+    );
+  }
+
+  void removeItem(String productId) {
+    state = state.copyWith(
+      items: state.items.where((item) => item.product.id != productId).toList(),
+    );
+  }
+}
+
+final cartProvider = NotifierProvider.autoDispose<CartNotifier, CartState>(
+  CartNotifier.new,
+);
+
+// Widget הצורך את ה-provider
+class ProductListScreen extends ConsumerWidget {
+  final String categoryId;
+  const ProductListScreen({required this.categoryId, super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final productsAsync = ref.watch(productListProvider(categoryId));
+
+    return productsAsync.when(
+      loading: () => const ProductListSkeleton(),
+      error: (error, stack) => ErrorView(error: error, onRetry: () =>
+        ref.invalidate(productListProvider(categoryId))),
+      data: (products) => ProductGrid(products: products),
+    );
+  }
+}
+```
+
+סקיל `flutter-expert` בוחר Riverpod בשל הבטיחות בזמן קומפילציה, סילוק אוטומטי (`autoDispose`), ו-modifier `family` ל-providers עם פרמטרים. תבנית `.when()` מטפלת בכל שלושת מצבי ה-async בצורה נקייה.
+
+### ציור מותאם אישית לממשק שבולט
+
+```dart
+class RadialProgressPainter extends CustomPainter {
+  final double progress;  // 0.0 עד 1.0
+  final Color backgroundColor;
+  final Color progressColor;
+  final double strokeWidth;
+
+  const RadialProgressPainter({
+    required this.progress,
+    this.backgroundColor = const Color(0xFFE0E0E0),
+    this.progressColor = const Color(0xFF2563EB),
+    this.strokeWidth = 8.0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.shortestSide - strokeWidth) / 2;
+
+    final backgroundPaint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    final progressPaint = Paint()
+      ..color = progressColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    // עיגול רקע
+    canvas.drawCircle(center, radius, backgroundPaint);
+
+    // קשת התקדמות
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2,            // התחלה מלמעלה
+      2 * math.pi * progress,  // זווית סחיפה בהתאם להתקדמות
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(RadialProgressPainter oldDelegate) =>
+    progress != oldDelegate.progress;
+}
+```
+
+הסקיל יודע `shouldRepaint` — החזרת `false` כשלא השתנה דבר היא אופטימיזציית Flutter קריטית שמונעת repaint מיותרים.
+
+## תבניות קוד ספציפיות לפלטפורמה
+
+Cross-platform לא אומר זהה. סקיל `react-native-expert` יודע מתי להתפצל על פי פלטפורמה:
+
+```tsx
+import { Platform, StyleSheet } from 'react-native'
+
+const styles = StyleSheet.create({
+  shadow: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+    },
+    android: {
+      elevation: 4,
+    },
+  }),
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: Platform.OS === 'ios' ? '600' : 'bold',
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+    }),
+  },
+})
+```
+
+צללים עובדים אחרת לחלוטין בין iOS (מאפייני shadow) ל-Android (elevation). טיפוגרפיה משתמשת בפונטים של המערכת אחרת. הסקיל מטפל בהבדלים אלה שקטית, ומייצר קוד שנראה נכון בשתי הפלטפורמות.
+
+## טיפול ב-Deep Linking והתראות Push
+
+שתי התכונות הללו מכשילות כמעט כל אפליקציית מובייל בשלב מסוים. הסקיל מטפל בהן נכון:
+
+```tsx
+// הגדרת deep link
+const linking = {
+  prefixes: ['myapp://', 'https://myapp.com'],
+  config: {
+    screens: {
+      Home: '',
+      ProductDetail: 'products/:productId',
+      OrderConfirmation: {
+        path: 'orders/:orderId/confirmation',
+        parse: { orderId: (id: string) => id },
+      },
+    },
+  },
+}
+
+// טיפול בהתראות
+import notifee, { EventType } from '@notifee/react-native'
+
+async function setupNotifications() {
+  // בקשת הרשאה (iOS מצריך הרשאה מפורשת)
+  const settings = await notifee.requestPermission()
+  if (settings.authorizationStatus < AuthorizationStatus.AUTHORIZED) {
+    return
+  }
+
+  // יצירת ערוץ Android (נדרש ל-Android 8+)
+  await notifee.createChannel({
+    id: 'orders',
+    name: 'עדכוני הזמנות',
+    importance: AndroidImportance.HIGH,
+    vibration: true,
+    sound: 'default',
+  })
+}
+
+// טיפול בהקשות על התראות ממצב רקע/סגור
+notifee.onBackgroundEvent(async ({ type, detail }) => {
+  if (type === EventType.PRESS) {
+    const { notification } = detail
+    if (notification?.data?.orderId) {
+      // ניווט לפרטי הזמנה — חייב לטפל אחרי שהאפליקציה נפתחת
+      await AsyncStorage.setItem('pendingDeepLink', `/orders/${notification.data.orderId}`)
+    }
+  }
+})
+```
+
+הסקיל מטפל: iOS מצריך בקשות הרשאה מפורשות (Android 13+ גם כן), Android 8+ מצריך ערוצי התראות, handlers של אירועי רקע רצים לפני שהאפליקציה טעונה במלואה, וניווט דרך deep link צריך לחכות שה-navigator יהיה מוכן.
+
+## Swift ל-iOS נייטיב
+
+כשביצועי iOS נייטיב הם קריטיים, סקיל `swift-expert` מייצר Swift מודרני:
+
+```swift
+import SwiftUI
+import Combine
+
+// networking async/await מודרני
+actor ProductRepository {
+    private let apiClient: APIClient
+    private var cache: [String: Product] = [:]
+
+    init(apiClient: APIClient) {
+        self.apiClient = apiClient
+    }
+
+    func fetchProduct(id: String) async throws -> Product {
+        if let cached = cache[id] {
+            return cached
+        }
+
+        let product = try await apiClient.fetch(Product.self, path: "/products/\(id)")
+        cache[id] = product
+        return product
+    }
+}
+
+// view SwiftUI עם ניהול state נכון
+struct ProductDetailView: View {
+    let productId: String
+    @StateObject private var viewModel: ProductDetailViewModel
+
+    init(productId: String) {
+        self.productId = productId
+        _viewModel = StateObject(wrappedValue: ProductDetailViewModel(productId: productId))
+    }
+
+    var body: some View {
+        Group {
+            switch viewModel.state {
+            case .loading:
+                ProgressView()
+            case .loaded(let product):
+                ProductContent(product: product)
+            case .error(let error):
+                ErrorView(error: error, retry: viewModel.load)
+            }
+        }
+        .task { await viewModel.load() }
+        .navigationTitle(viewModel.state.product?.name ?? "")
+    }
+}
+```
+
+הסקיל משתמש ב-`actor` ל-shared state בטוח לthread (Swift Concurrency), ב-`@StateObject` על `@ObservedObject` ל-view models בבעלות ה-view, וב-`.task { }` על `.onAppear { Task { ... } }` לעבודה async הקשורה ל-lifecycle.
+
+## להתחיל
+
+1. התקינו SuperSkills ב-`~/.claude/skills/`
+2. פתחו את פרויקט המובייל שלכם ב-Claude Code
+3. סקילים מופעלים בהתאם להקשר הפרויקט — React Native לקבצי `.tsx` עם imports של RN, Flutter לקבצי `.dart`
+4. התחילו לבנות: "הוסף pull-to-refresh למסך הזה," "הגדר deep linking לאפליקציה," "צור tab bar אנימציה מותאמת אישית"
+
+הרכיב הראשון שClaude בונה שמטפל בסגנון ספציפי לפלטפורמה, משתמש ברינדור רשימה מאופטם, ומטפס נכון ב-routes ניווט מבלי מספר סיבובי משוב — זה הרגע שבו פיתוח מובייל עם AI מתחיל להרגיש שונה באמת.
+
+---
+
+*קבלו את 106 הסקילים של SuperSkills כולל חבילת פיתוח המובייל המלאה — [הורידו ב-$50](/#pricing) ושפו אפליקציות מובייל טובות יותר החל מהיום.*

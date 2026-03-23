@@ -1,0 +1,326 @@
+---
+title: "Building REST APIs with Claude Code: A Practical Guide"
+description: "Step-by-step guide to building production-ready REST APIs using Claude Code — from schema design to authentication to deployment."
+date: "2026-02-06"
+author: "SuperSkills"
+tags: ["rest api", "claude code", "api development", "tutorial"]
+category: "Tutorial"
+---
+
+Building a REST API that works is easy. Building one that's production-ready — with proper authentication, validation, error handling, pagination, and documentation — takes experience. The `api-designer` skill gives Claude that experience, letting you build APIs that engineers actually want to use.
+
+This guide walks through the complete process of building a production-ready REST API with Claude Code.
+
+---
+
+## Start with Resource Modeling
+
+The biggest mistake in API design is jumping straight to routes. Routes are the surface of your API — resources are the foundation.
+
+Start by describing your domain to Claude:
+
+```
+"I'm building an e-commerce API. The main entities are:
+- Products (name, description, price, stock, category)
+- Users (name, email, role)
+- Orders (user, items, status, total)
+- Reviews (user, product, rating, text)"
+```
+
+Claude will model the relationships, suggest which resources are top-level vs nested, and identify the operations each resource needs. You'll get a resource map before you write a single route.
+
+---
+
+## Route Design Principles
+
+Good routes are predictable. Anyone who knows REST can use your API without reading the documentation for basic operations. The `api-designer` skill enforces these conventions:
+
+**Resource naming:**
+```
+GET    /products           # list
+GET    /products/:id       # get one
+POST   /products           # create
+PUT    /products/:id       # replace
+PATCH  /products/:id       # partial update
+DELETE /products/:id       # delete
+```
+
+**Nested resources (only one level deep):**
+```
+GET    /products/:id/reviews    # reviews for a product
+POST   /products/:id/reviews    # add a review
+```
+
+**Actions that don't fit CRUD (use verbs sparingly):**
+```
+POST   /orders/:id/cancel      # cancel an order
+POST   /users/:id/verify-email # trigger email verification
+```
+
+Tell Claude your entities and it will generate a complete route map following these conventions, including which HTTP methods are appropriate for each operation.
+
+---
+
+## Validation with Zod
+
+Validation is your first line of defense. Every input to your API should be validated before it touches your business logic or database. Zod makes this clean and type-safe.
+
+Ask Claude to generate Zod schemas for your resources:
+
+```
+"Generate Zod validation schemas for creating and updating a Product.
+Include: name (required, 3-100 chars), price (positive number),
+stock (non-negative integer), category (enum of predefined categories)."
+```
+
+```typescript
+const createProductSchema = z.object({
+  name: z.string().min(3).max(100),
+  description: z.string().max(2000).optional(),
+  price: z.number().positive(),
+  stock: z.number().int().nonnegative(),
+  category: z.enum(['electronics', 'clothing', 'food', 'books', 'other']),
+});
+
+const updateProductSchema = createProductSchema.partial();
+
+// Middleware to validate request body
+const validate = (schema: z.ZodSchema) => (req: Request, res: Response, next: NextFunction) => {
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: result.error.flatten(),
+    });
+  }
+  req.body = result.data;
+  next();
+};
+```
+
+This pattern gives you type-safe request bodies throughout your handlers, automatic error messages that tell the client exactly what's wrong, and a single source of truth for your validation rules.
+
+---
+
+## Authentication with JWT
+
+Most APIs need authentication. JWT (JSON Web Tokens) is the standard for stateless auth in REST APIs. Claude with `api-designer` implements this correctly — including token refresh, proper expiry, and secure storage guidance.
+
+**The auth flow:**
+
+```typescript
+// Login endpoint
+router.post('/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user || !await bcrypt.compare(password, user.passwordHash)) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const accessToken = jwt.sign(
+    { userId: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '15m' }
+  );
+
+  const refreshToken = jwt.sign(
+    { userId: user.id },
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: '7d' }
+  );
+
+  // Store refresh token in httpOnly cookie (not localStorage)
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.json({ accessToken, user: { id: user.id, name: user.name, role: user.role } });
+});
+```
+
+Ask Claude to generate the full auth flow: login, refresh token rotation, logout (token invalidation), and the auth middleware that protects your routes.
+
+---
+
+## Error Handling
+
+Consistent error responses make your API much easier to use. Every error should have the same shape so clients can handle them uniformly.
+
+```typescript
+// Centralized error handler (Express)
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      error: err.message,
+      code: err.code,
+    });
+  }
+
+  // Log unexpected errors
+  console.error(err);
+  res.status(500).json({
+    error: 'Internal server error',
+    code: 'INTERNAL_ERROR',
+  });
+});
+```
+
+```typescript
+// Custom error classes
+class AppError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number,
+    public code: string
+  ) {
+    super(message);
+  }
+}
+
+class NotFoundError extends AppError {
+  constructor(resource: string) {
+    super(`${resource} not found`, 404, 'NOT_FOUND');
+  }
+}
+
+class ValidationError extends AppError {
+  constructor(message: string) {
+    super(message, 400, 'VALIDATION_ERROR');
+  }
+}
+```
+
+Tell Claude "implement centralized error handling with typed error classes" and it generates the full setup including async error handling middleware for Express.
+
+---
+
+## Pagination
+
+Any endpoint that returns a list needs pagination. There are two main approaches and the `api-designer` skill knows when to use each:
+
+**Offset pagination** (simple, good for small datasets):
+```typescript
+router.get('/products', async (req, res) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+  const offset = (page - 1) * limit;
+
+  const [items, total] = await Promise.all([
+    Product.findAll({ limit, offset }),
+    Product.count(),
+  ]);
+
+  res.json({
+    data: items,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      hasNext: page * limit < total,
+    },
+  });
+});
+```
+
+**Cursor pagination** (better for large datasets, real-time data):
+```
+GET /products?cursor=eyJpZCI6MTAwfQ&limit=20
+```
+
+Ask Claude which approach is right for your use case and it will explain the tradeoffs and implement the right one.
+
+---
+
+## Rate Limiting
+
+Protect your API from abuse with rate limiting. This should be one of the first things you add:
+
+```typescript
+import rateLimit from 'express-rate-limit';
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // max 100 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Too many requests',
+      code: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: Math.ceil(req.rateLimit.resetTime / 1000),
+    });
+  },
+});
+
+// Stricter limits for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  skipSuccessfulRequests: true, // only count failed attempts
+});
+```
+
+---
+
+## OpenAPI Documentation
+
+Good documentation is part of a good API. OpenAPI (formerly Swagger) is the standard. The `api-designer` skill can generate OpenAPI specs from your route definitions:
+
+```
+"Generate OpenAPI 3.0 documentation for the products routes
+we just built, including request/response schemas,
+authentication requirements, and example values."
+```
+
+You can also ask Claude to set up `swagger-ui-express` to serve interactive docs at `/api-docs` — great for development and for sharing with frontend teams.
+
+---
+
+## A Complete API in One Session
+
+Here's how a complete session with `api-designer` looks:
+
+1. Describe your domain and entities
+2. Ask for a resource map and route design
+3. Ask Claude to scaffold the project structure (routes, controllers, services, models)
+4. Ask for Zod schemas for each resource
+5. Add auth middleware
+6. Add error handling
+7. Add pagination to list endpoints
+8. Add rate limiting
+9. Generate OpenAPI docs
+
+That's a production-ready API foundation in a single focused session. You handle the business logic specific to your domain — Claude handles the infrastructure patterns.
+
+---
+
+## Production Checklist
+
+Before shipping your API, ask Claude to review it against this checklist:
+
+- All inputs validated with Zod
+- Authentication on all protected routes
+- Authorization checks (users can only modify their own resources)
+- Rate limiting on all endpoints (stricter on auth)
+- CORS configured for your frontend domains
+- Helmet.js for security headers
+- Structured logging (not just `console.log`)
+- Health check endpoint at `/health`
+- OpenAPI docs up to date
+
+The `api-designer` skill knows all of these patterns. Ask "review this API for production readiness" and Claude will flag what's missing.
+
+---
+
+## Build APIs That Teams Love to Use
+
+The difference between an API that developers hate and one they love is consistency and predictability. The `api-designer` skill enforces the patterns that make APIs predictable — so the developers consuming your API can focus on building features, not figuring out your conventions.
+
+The `api-designer` skill is part of the SuperSkills library — 106 skills that cover every layer of modern software development.
+
+**Ready to build better APIs faster?** See all 106 skills at [/#pricing](/#pricing).

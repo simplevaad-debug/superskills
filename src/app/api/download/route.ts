@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateDownloadToken } from "@/lib/tokens";
+import { trackDownload } from "@/lib/supabase";
 import { readFile } from "fs/promises";
 import { join } from "path";
+
+const MAX_DOWNLOADS = 3;
 
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
@@ -19,7 +22,18 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Proxy the file from Vercel Blob (production) — never redirect to keep URL private
+  // Limit downloads per order
+  if (result.sessionId) {
+    const count = await trackDownload(result.sessionId);
+    if (count > MAX_DOWNLOADS) {
+      return NextResponse.json(
+        { error: "Download limit reached. Contact support." },
+        { status: 403 }
+      );
+    }
+  }
+
+  // Proxy from Vercel Blob (production)
   const blobUrl = process.env.BLOB_ZIP_URL;
   if (blobUrl) {
     try {
@@ -45,9 +59,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Otherwise serve from public directory (development)
+  // Serve from local (development)
   try {
-    const zipPath = join(process.cwd(), "private", "superskills.zip");
+    const zipPath = join(process.cwd(), "public", "superskills.zip");
     const file = await readFile(zipPath);
     return new NextResponse(file, {
       headers: {

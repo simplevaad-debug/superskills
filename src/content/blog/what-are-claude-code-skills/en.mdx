@@ -1,0 +1,101 @@
+---
+title: "What Are Claude Code Skills?"
+description: "Learn what Claude Code skills are, how they work, and how they can transform your development workflow with AI-powered expertise."
+date: "2026-03-22"
+author: "SuperSkills"
+tags: ["claude code", "skills", "ai coding", "developer tools"]
+category: "Education"
+---
+
+If you've been using Claude Code — Anthropic's CLI for AI-assisted development — you've probably noticed it's incredibly capable out of the box. But what if you could make it even better? That's exactly what **Claude Code skills** do.
+
+## What Is a Skill?
+
+A skill is a structured prompt file that gives Claude Code **domain-specific expertise**. Think of it as a playbook: instead of explaining your coding standards, preferred patterns, or workflow every time you start a new session, you write it once as a skill, and Claude follows it automatically.
+
+Each skill file lives in `~/.claude/skills/` and activates when its trigger conditions are met. For example, a `react-expert` skill activates when you're working with `.tsx` files and mention React — Claude then follows React 18+ best practices, uses Server Components correctly, and applies your preferred patterns.
+
+## How Do Skills Work?
+
+Under the hood, skills are simple markdown files with frontmatter metadata:
+
+```yaml
+---
+name: react-expert
+description: Use when building React 18+ applications
+---
+
+## Rules
+
+- Always use functional components with hooks
+- Prefer Server Components by default
+- Use Suspense boundaries for async operations
+```
+
+When Claude Code detects a matching context, it loads the skill and follows its instructions. No API keys, no configuration, no setup scripts — just files in a directory.
+
+### The Skill Lifecycle
+
+1. **Detection** — Claude Code scans your skills directory on startup
+2. **Matching** — When you give a task, Claude checks which skills are relevant
+3. **Activation** — Matching skills are loaded into Claude's context
+4. **Execution** — Claude follows the skill's instructions while working on your task
+
+This happens transparently. You don't need to invoke skills manually — they just work.
+
+## Why Should You Use Skills?
+
+### 1. Consistency Across Sessions
+
+Without skills, you have to re-explain your preferences every time. "Use Tailwind, not CSS modules." "Follow our naming conventions." "Don't add comments unless the logic is non-obvious." Skills encode these preferences once.
+
+### 2. Expert-Level Output
+
+A well-crafted skill doesn't just set preferences — it teaches Claude best practices. A `typescript-pro` skill might enforce strict mode, branded types, and proper error handling patterns. A `devops-engineer` skill knows how to write Dockerfiles, configure CI/CD pipelines, and manage Kubernetes manifests.
+
+### 3. Speed
+
+Instead of iterating on Claude's output — "no, don't use that pattern" — skills get it right the first time. Less back-and-forth means faster development.
+
+### 4. Team Alignment
+
+Share skills across your team. Everyone gets the same coding standards, the same patterns, the same quality bar — enforced by AI, not code reviews.
+
+## What Makes a Good Skill?
+
+The best skills are:
+
+- **Specific** — "Use Zustand for state management" is better than "manage state well"
+- **Actionable** — Include concrete patterns, not vague advice
+- **Scoped** — One skill per domain (don't mix frontend and DevOps)
+- **Tested** — A skill that gives wrong advice is worse than no skill
+
+## Real-World Examples
+
+Here's what developers use skills for:
+
+- **Frontend:** React, Next.js, Vue, Angular, Svelte — each with framework-specific best practices
+- **Backend:** FastAPI, Django, NestJS, Go, Rust — proper patterns for each ecosystem
+- **DevOps:** Docker, Kubernetes, Terraform, CI/CD — infrastructure as code done right
+- **Testing:** TDD workflows, Playwright E2E, proper mocking strategies
+- **Security:** OWASP top 10 prevention, input validation, authentication flows
+- **Marketing:** SEO audits, content strategy, analytics setup
+
+## How Many Skills Do You Need?
+
+Most developers start with 3-5 skills covering their primary stack. As your workflow expands, you add more. Power users run 20-50 skills covering every aspect of their development process.
+
+The SuperSkills collection includes **106 skills across 15 categories** — a complete toolkit for professional development. From `react-expert` to `devops-engineer` to `prompt-engineer`, every skill is battle-tested and ready to use.
+
+## Getting Started
+
+1. Download your skills (or create your own)
+2. Extract to `~/.claude/skills/`
+3. Restart Claude Code
+4. Start coding — skills activate automatically
+
+That's it. No configuration files, no API keys, no setup wizards. Just better AI-assisted development, every session.
+
+---
+
+*Ready to supercharge your Claude Code? [Get all 106 SuperSkills for $50](/pricing) — one ZIP, instant upgrade.*

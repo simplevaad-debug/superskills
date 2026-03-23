@@ -1,0 +1,245 @@
+---
+title: "How to Install Claude Code"
+description: "A complete step-by-step guide to installing Claude Code on macOS, Linux, and Windows — from prerequisites to your first AI-assisted coding session."
+date: "2026-03-20"
+author: "SuperSkills"
+tags: ["claude code", "installation", "setup", "tutorial"]
+category: "Tutorial"
+---
+
+Claude Code is Anthropic's official CLI for AI-assisted development. Unlike browser-based tools, it runs directly in your terminal alongside your existing workflow — your editor, your Git, your shell. This guide walks you through every step from zero to your first AI-assisted coding session.
+
+## Prerequisites
+
+Before installing Claude Code, make sure you have two things in place.
+
+### 1. Node.js 18 or Later
+
+Claude Code requires Node.js 18+. Check what you have:
+
+```bash
+node --version
+```
+
+If you see `v18.x.x` or higher, you're good. If not, install Node.js from [nodejs.org](https://nodejs.org) or via a version manager:
+
+```bash
+# Using nvm (recommended)
+nvm install 20
+nvm use 20
+
+# On macOS with Homebrew
+brew install node
+```
+
+### 2. An Anthropic API Key
+
+Claude Code calls Anthropic's API, so you need an account and API key.
+
+1. Go to [console.anthropic.com](https://console.anthropic.com)
+2. Sign up or log in
+3. Navigate to **API Keys** → **Create Key**
+4. Copy the key — you'll need it during setup
+
+Keep this key private. Never commit it to a repository.
+
+---
+
+## Installation
+
+### Option A: npm (All Platforms)
+
+The standard installation method works on macOS, Linux, and Windows:
+
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+Verify the installation succeeded:
+
+```bash
+claude --version
+```
+
+You should see something like `claude-code/1.x.x`.
+
+### Option B: Homebrew (macOS / Linux)
+
+If you prefer Homebrew:
+
+```bash
+brew install anthropic/tap/claude-code
+```
+
+### Option C: Windows (via npm in PowerShell or WSL)
+
+On Windows, use either PowerShell with Node.js installed, or Windows Subsystem for Linux (WSL). WSL is recommended for a smoother experience:
+
+```powershell
+# In PowerShell
+npm install -g @anthropic-ai/claude-code
+```
+
+```bash
+# In WSL (Ubuntu)
+npm install -g @anthropic-ai/claude-code
+```
+
+---
+
+## First Run and Authentication
+
+Once installed, run Claude Code from any directory:
+
+```bash
+claude
+```
+
+On first launch, Claude Code will prompt you for your API key:
+
+```
+Welcome to Claude Code!
+Please enter your Anthropic API key: sk-ant-...
+```
+
+Enter the key you created earlier. Claude Code stores it securely in your system's credential store — you won't be asked again.
+
+Alternatively, set it as an environment variable before running:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-your-key-here
+claude
+```
+
+To make this permanent, add the export line to your shell profile (`~/.zshrc`, `~/.bashrc`, or equivalent).
+
+---
+
+## Basic Configuration
+
+Claude Code works out of the box with sensible defaults, but a few settings are worth configuring early.
+
+### Project-Level Config: `CLAUDE.md`
+
+In any project, create a `CLAUDE.md` file at the root. Claude reads this file automatically when you start a session in that directory:
+
+```markdown
+# My Project
+
+## Stack
+- Next.js 14, TypeScript, Tailwind CSS
+- Supabase for database and auth
+- Deployed on Vercel
+
+## Conventions
+- Use named exports, not default exports
+- Prefer `const` over `let`
+- All components go in `src/components/`
+```
+
+This file tells Claude about your project without you having to explain it every session.
+
+### Global Config
+
+Claude Code also reads `~/.claude/CLAUDE.md` for global preferences that apply to every project:
+
+```bash
+mkdir -p ~/.claude
+touch ~/.claude/CLAUDE.md
+```
+
+Add global rules here — your preferred code style, things Claude should always or never do, output format preferences.
+
+### Skills Directory
+
+The `~/.claude/skills/` directory is where Claude Code skills live. Skills are markdown files that give Claude domain-specific expertise — more on this in a moment:
+
+```bash
+mkdir -p ~/.claude/skills
+```
+
+---
+
+## Verifying It Works
+
+Let's do a quick sanity check. Navigate to any project directory and run:
+
+```bash
+cd ~/your-project
+claude
+```
+
+At the `>` prompt, type:
+
+```
+What files are in this project?
+```
+
+Claude will scan the directory and give you a summary. If it responds intelligently about your files, everything is working.
+
+Try a real task:
+
+```
+Review the main entry point and suggest any improvements.
+```
+
+Claude will read the file, analyze it, and respond with concrete suggestions. That's it — you're using AI-assisted development.
+
+---
+
+## Installing Skills (Optional but Recommended)
+
+Claude Code skills extend what Claude knows. A `react-expert` skill makes Claude follow React 18 best practices automatically. A `typescript-pro` skill enforces strict TypeScript patterns. Skills live in `~/.claude/skills/` as markdown files.
+
+To install a skill pack:
+
+```bash
+# Download and extract a skills ZIP
+unzip superskills.zip -d ~/.claude/skills/
+
+# Verify skills are in place
+ls ~/.claude/skills/
+```
+
+Restart Claude Code after adding new skills — they're loaded at startup.
+
+---
+
+## Common Issues
+
+**"command not found: claude"**
+The npm global bin directory isn't in your PATH. Run `npm bin -g` to find it and add it to your `~/.zshrc` or `~/.bashrc`.
+
+**"API key invalid"**
+Double-check the key in [console.anthropic.com](https://console.anthropic.com). Make sure you're copying the full key including the `sk-ant-` prefix.
+
+**Slow first response**
+The first message in a session can take a few seconds as Claude loads your project context. Subsequent messages are faster.
+
+**Permission errors on macOS**
+If npm install fails with permissions errors, avoid `sudo`. Instead, configure npm to use a user-writable directory:
+
+```bash
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc
+source ~/.zshrc
+npm install -g @anthropic-ai/claude-code
+```
+
+---
+
+## What's Next?
+
+Now that Claude Code is running, here's how to get the most out of it:
+
+- **Add a `CLAUDE.md`** to every project — context is everything
+- **Install skills** to give Claude domain-specific expertise
+- **Use it for real tasks** — code reviews, refactoring, debugging, writing tests
+- **Explore the `--print` flag** for non-interactive use in scripts
+
+The difference between a basic Claude Code setup and a great one is almost entirely about context: what you tell Claude, and which skills you've installed.
+
+---
+
+*Ready to level up? [Get all 106 SuperSkills for $50](/#pricing) — one ZIP file, drop it into `~/.claude/skills/`, and Claude Code becomes expert-level across 15 domains.*

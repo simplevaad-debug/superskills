@@ -1,0 +1,244 @@
+---
+title: "تحسين قواعد البيانات مع Claude Code"
+description: "كيفية تحسين استعلامات قواعد البيانات وتصميم مخططات أفضل وتحسين الأداء باستخدام مهارات قواعد البيانات في Claude Code."
+date: "2026-01-28"
+author: "SuperSkills"
+tags: ["قاعدة بيانات", "تحسين", "postgresql", "mysql", "claude code"]
+category: "درس تعليمي"
+---
+
+أداء قاعدة البيانات هو المكان الذي تصل إليه معظم التطبيقات في نهاية المطاف إلى سقفها. الميزة التي عملت بشكل جيد عند 1,000 مستخدم تبدأ في التباطؤ عند 100,000. الاستعلامات التي كانت تعمل في ميلي ثانية تبدأ في أخذ ثوانٍ. يحدق المهندسون في مخرج EXPLAIN محاولين فهم السبب.
+
+Claude Code، المجهَّز بمهارات تركز على قواعد البيانات، يتحول إلى مسؤول قاعدة بيانات متمرس يقرأ خطط الاستعلام ويصمم الفهارس ويرصد أنماط N+1 ويعيد كتابة الاستعلامات البطيئة قبل وصولها للإنتاج.
+
+## مهارات قواعد البيانات في مجموعة SuperSkills
+
+ثلاث مهارات تغطي الطيف الكامل لعمل قواعد البيانات:
+
+**`database-optimizer`** — متخصص الأداء. يحلل الاستعلامات البطيئة ويقرأ مخرج EXPLAIN/EXPLAIN ANALYZE ويحدد الفهارس المفقودة ويعيد كتابة الاستعلامات للحصول على خطط تنفيذ أفضل. يعرف الفرق بين الفحص التسلسلي المقبول والذي يقتل الأداء.
+
+**`postgres-pro`** — خبرة خاصة بـPostgreSQL. يغطي ميزات Postgres المتقدمة: CTEs وwindow functions والفهارس الجزئية وعمليات JSONB وتحليل pg_stat_statements وضبط autovacuum وتجميع الاتصالات مع PgBouncer.
+
+**`sql-pro`** — حرفية SQL عبر المحركات. يكتب SQL نظيفاً وفعالاً يعمل سواء كنت على PostgreSQL أو MySQL أو SQLite أو SQL Server. يغطي مبادئ تحسين الاستعلام وتصميم المخطط وأنماط SQL.
+
+## قراءة مخرج EXPLAIN
+
+`EXPLAIN ANALYZE` هو أقوى أداة تشخيص في ترسانة مهندس قواعد البيانات — وأيضاً الأكثر قراءةً بشكل خاطئ. تُعلّم مهارة `database-optimizer` Claude تفسير خطط التنفيذ بشكل صحيح.
+
+استعلام بطيء:
+
+```sql
+SELECT u.name, COUNT(o.id) as order_count, SUM(o.total) as revenue
+FROM users u
+JOIN orders o ON u.id = o.user_id
+WHERE o.created_at > '2026-01-01'
+GROUP BY u.id, u.name
+ORDER BY revenue DESC;
+```
+
+عند تشغيل `EXPLAIN ANALYZE` بدون المهارة، قد يلاحظ Claude "يوجد مسح تسلسلي." مع تفعيل مهارة `database-optimizer`، يقرأ Claude الخطة الكاملة ويحدد: مرشّح `orders.created_at` يزيل 234,521 صفاً بعد قراءتها جميعاً — فهرس مفقود. يوصي بـ:
+
+```sql
+-- فهرس لدعم مرشح التاريخ
+CREATE INDEX idx_orders_created_at ON orders (created_at);
+
+-- إذا كان الاستعلام دائماً مفلتراً حسب التاريخ + المستخدم، فهرس مركب أفضل
+CREATE INDEX idx_orders_user_created ON orders (user_id, created_at);
+```
+
+## تصميم الفهارس
+
+تفهم مهارة `database-optimizer` استراتيجية الفهرس لما هو أبعد من "أنشئ فهرساً على العمود في جملة WHERE."
+
+### الفهارس الجزئية (PostgreSQL)
+
+عندما تستعلم دائماً فقط عن مجموعة فرعية من الصفوف، فهرس فقط تلك المجموعة الفرعية:
+
+```sql
+-- فهرسة المستخدمين النشطين فقط — 10% من الجدول
+CREATE INDEX idx_users_active_email ON users (email)
+WHERE status = 'active';
+
+-- فهرسة الفواتير غير المدفوعة فقط
+CREATE INDEX idx_invoices_unpaid ON invoices (due_date, customer_id)
+WHERE paid_at IS NULL;
+```
+
+### الفهارس التغطية
+
+عندما يحتاج الاستعلام فقط إلى أعمدة مفهرسة، يمكن لـPostgreSQL الإجابة عليه بالكامل من الفهرس:
+
+```sql
+-- استعلام: SELECT email, name FROM users WHERE plan = 'pro'
+CREATE INDEX idx_users_plan_covering ON users (plan) INCLUDE (email, name);
+```
+
+### ترتيب أعمدة الفهرس المركب
+
+تفرض مهارة `sql-pro` ترتيباً صحيحاً للأعمدة في الفهارس المركبة — شروط المساواة قبل شروط النطاق:
+
+```sql
+-- استعلام: WHERE tenant_id = $1 AND created_at > $2 AND status = $3
+
+-- خاطئ — شرط النطاق في المنتصف يكسر استخدام الفهرس لـstatus
+CREATE INDEX bad_idx ON events (tenant_id, created_at, status);
+
+-- صحيح — شروط المساواة أولاً، شرط النطاق أخيراً
+CREATE INDEX good_idx ON events (tenant_id, status, created_at);
+```
+
+## اكتشاف استعلامات N+1
+
+N+1 هي أكثر مشاكل أداء ORM شيوعاً. تلتقطها مهارة `database-optimizer` فوراً.
+
+```python
+# N+1 في SQLAlchemy — استعلام 1 للمستخدمين + N استعلامات للطلبات
+users = User.query.all()
+for user in users:
+    print(f"{user.name}: {len(user.orders)} orders")
+    # يُشغّل استعلاماً جديداً لكل مستخدم
+```
+
+لـ1,000 مستخدم، ينفّذ هذا 1,001 استعلام. تتعرف المهارة على النمط وتعيد الكتابة:
+
+```python
+# مُصلَح — استعلام 1 مع JOIN، محمَّل بشكل متحمس
+from sqlalchemy.orm import joinedload
+
+users = User.query.options(joinedload(User.orders)).all()
+for user in users:
+    print(f"{user.name}: {len(user.orders)} orders")
+    # الطلبات محمَّلة بالفعل — لا استعلامات إضافية
+```
+
+## تطبيع المخطط
+
+تقيّم مهارة `database-optimizer` المخططات بحثاً عن مشكلات التطبيع التي تسبب مشكلات في سلامة البيانات والأداء:
+
+**قبل — غير مُطبَّع:**
+
+```sql
+CREATE TABLE orders (
+    id BIGSERIAL PRIMARY KEY,
+    customer_name VARCHAR(255),
+    customer_email VARCHAR(255),
+    customer_address TEXT,
+    -- بيانات العميل تتكرر في كل طلب
+    product_name VARCHAR(255),
+    product_price DECIMAL(10,2),
+    quantity INT,
+    total DECIMAL(10,2)
+);
+```
+
+**بعد — مُطبَّع:**
+
+```sql
+CREATE TABLE customers (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE order_items (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL REFERENCES orders(id),
+    product_id BIGINT NOT NULL REFERENCES products(id),
+    quantity INT NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    total DECIMAL(10,2) GENERATED ALWAYS AS (quantity * unit_price) STORED
+);
+```
+
+## تقسيم الجداول
+
+للجداول الكبيرة (أكثر من 100 مليون صف)، يحوّل التقسيم أداء الاستعلام. تطبّق مهارة `postgres-pro` ذلك بشكل صحيح:
+
+```sql
+-- تقسيم جدول الطلبات حسب الشهر
+CREATE TABLE orders (
+    id BIGSERIAL,
+    customer_id BIGINT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    total DECIMAL(10,2)
+) PARTITION BY RANGE (created_at);
+
+CREATE TABLE orders_2026_01 PARTITION OF orders
+    FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
+
+CREATE INDEX idx_orders_customer ON orders (customer_id, created_at);
+```
+
+ستمسح الاستعلامات المفلترة بـ`created_at` الآن القسم ذي الصلة فقط بدلاً من الجدول بأكمله.
+
+## تجميع الاتصالات
+
+اتصالات قاعدة البيانات مكلفة. تُعدّ مهارة `postgres-pro` PgBouncer بشكل صحيح:
+
+```ini
+[pgbouncer]
+pool_mode = transaction          # الأفضل لمعظم تطبيقات الويب
+max_client_conn = 1000
+default_pool_size = 20
+reserve_pool_size = 5
+server_idle_timeout = 600
+```
+
+في وضع المعاملة، تحصل قاعدة البيانات على 20 اتصالاً بغض النظر عن عدد خيوط التطبيق التي تتصل.
+
+## قبل/بعد: تحسين حقيقي
+
+استعلام تقرير على قاعدة بيانات تجارة إلكترونية، يعمل في 8.2 ثوانٍ:
+
+```sql
+-- قبل: 8.2 ثوانٍ
+SELECT
+    p.category,
+    DATE_TRUNC('month', o.created_at) as month,
+    COUNT(DISTINCT o.customer_id) as unique_customers,
+    SUM(oi.quantity * oi.unit_price) as revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.id
+JOIN products p ON oi.product_id = p.id
+WHERE o.created_at BETWEEN '2025-01-01' AND '2026-01-01'
+GROUP BY p.category, DATE_TRUNC('month', o.created_at)
+ORDER BY month, revenue DESC;
+```
+
+مع `database-optimizer`، توصي المهارة بثلاثة تغييرات. إعادة الكتابة باستخدام CTE:
+
+```sql
+-- بعد: 0.4 ثانية
+WITH monthly_orders AS (
+    SELECT id, customer_id, created_at
+    FROM orders
+    WHERE created_at BETWEEN '2025-01-01' AND '2026-01-01'
+)
+SELECT
+    p.category,
+    DATE_TRUNC('month', mo.created_at) as month,
+    COUNT(DISTINCT mo.customer_id) as unique_customers,
+    SUM(oi.quantity * oi.unit_price) as revenue
+FROM order_items oi
+JOIN monthly_orders mo ON oi.order_id = mo.id
+JOIN products p ON oi.product_id = p.id
+GROUP BY p.category, DATE_TRUNC('month', mo.created_at)
+ORDER BY month, revenue DESC;
+```
+
+أسرع 20 مرة. نفس النتيجة.
+
+## البدء مع مهارات قاعدة البيانات
+
+1. ثبّت مجموعة SuperSkills في `~/.claude/skills/`
+2. حمِّل `database-optimizer` عند التحقيق في الاستعلامات البطيئة — الصق مخرج EXPLAIN واطلب التحليل
+3. حمِّل `postgres-pro` للعمل الخاص بـPostgreSQL: تصميم المخطط والميزات المتقدمة وضبط التكوين
+4. حمِّل `sql-pro` لكتابة ومراجعة SQL عبر المحركات
+5. اسأل مباشرةً: "حلّل خطة التنفيذ هذه" أو "ابحث عن مشكلات N+1 في هذا الكود"
+
+مشكلات أداء قاعدة البيانات تتراكم. الاستعلام البطيء الذي يستغرق ثانيتين اليوم يستغرق 20 ثانية عندما تتضاعف بياناتك 10 مرات — ولن تلاحظ حتى يصبح حادثة.
+
+---
+
+*احصل على 106 مهارات SuperSkills بما فيها مجموعة قواعد البيانات الكاملة — [نزّلها بـ $50](/#pricing) وابدأ في كتابة استعلامات أسرع اليوم.*

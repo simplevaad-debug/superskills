@@ -1,12 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { ClaudeLogo } from "@/components/claude-logo";
 import { useI18n } from "@/lib/i18n/context";
+import { useCheckout } from "@/lib/use-checkout";
 
 export function Hero() {
   const { t } = useI18n();
+  const { checkout, loading } = useCheckout();
 
   return (
     <section aria-labelledby="hero-heading" className="relative min-h-screen flex flex-col items-center justify-start pt-28 pb-16 px-6 overflow-hidden">
@@ -74,13 +76,15 @@ export function Hero() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
       >
-        <a
-          href="#pricing"
-          className="bg-white text-black px-7 py-3 rounded-lg text-sm font-medium hover:bg-gray-100 transition-all cursor-pointer flex items-center gap-2"
+        <button
+          onClick={checkout}
+          disabled={loading}
+          className="bg-white text-black px-7 py-3 rounded-lg text-sm font-medium hover:bg-gray-100 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
         >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
           {t("hero.cta")}
-          <ArrowRight className="w-4 h-4" />
-        </a>
+          {!loading && <ArrowRight className="w-4 h-4" />}
+        </button>
         <a
           href="#skills"
           className="text-sm text-[#a1a1aa] hover:text-white transition-colors cursor-pointer px-4 py-3"

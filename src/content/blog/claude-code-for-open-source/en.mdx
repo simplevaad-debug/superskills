@@ -1,0 +1,236 @@
+---
+title: "Claude Code for Open Source Contributors"
+description: "How to use Claude Code to contribute to open source projects more effectively — understanding codebases, writing better PRs, and following project conventions."
+date: "2026-01-24"
+author: "SuperSkills"
+tags: ["open source", "claude code", "contributing", "github", "pull requests"]
+category: "Use Case"
+---
+
+Contributing to open source is one of the best ways to grow as a developer — and one of the most frustrating. You find a project you want to contribute to, clone the repo, and immediately face 50,000 lines of unfamiliar code with conventions you don't know, patterns you haven't seen before, and implicit expectations that aren't written anywhere.
+
+Most first-time contributors give up before their first PR. Not because they lack the skill to fix the bug — but because they can't navigate the codebase confidently enough to know where to look, how to write the fix in the project's style, and what the maintainers actually expect.
+
+Claude Code changes this. With the right skills, it becomes a knowledgeable guide to unfamiliar codebases — helping you understand structure, follow conventions, write good PRs, and become the kind of contributor maintainers want to merge.
+
+## Understanding Unfamiliar Codebases
+
+The `spec-miner` skill is purpose-built for understanding existing code. It excels at extracting the implicit structure and patterns from a codebase — the things that aren't in the README.
+
+When you load `spec-miner` and point Claude at an unfamiliar project, you can ask:
+
+- "What are the main architectural layers in this codebase?"
+- "How does data flow from an HTTP request to the database and back?"
+- "What patterns does this project use for error handling?"
+- "Where are the tests, and what testing framework and conventions do they follow?"
+- "What's the naming convention for files in this project?"
+
+Instead of reading through files for hours to understand the structure, Claude maps it for you in minutes. You get a mental model of the codebase before you write a single line.
+
+### Finding Where to Make Changes
+
+Once you understand the structure, you need to find the right place to make your specific change. Ask Claude:
+
+"I want to fix the bug where [description]. Based on what you know about this codebase structure, where are the most likely files I need to change, and what's the dependency chain I need to understand?"
+
+The skill helps Claude trace through the architecture to identify the relevant code paths — so you're not grep-ing blindly through the entire repo.
+
+## Following Project Conventions
+
+Every open source project has conventions. Some are documented (CONTRIBUTING.md), most are not. The `spec-miner` skill reads existing code to infer conventions — and then ensures your code follows them.
+
+### Code Style Beyond Linting
+
+Linters enforce syntax rules. But codebases have style conventions that linters can't catch:
+
+- Do they prefer `const` declarations at the top of functions, or inline at first use?
+- Do error messages use title case or sentence case?
+- Do they use early returns or deeply nested conditionals?
+- What's the comment style — inline JSDoc? block comments? minimal?
+- Do they group related functions together or organize by type?
+
+The skill reads 20–30 existing files and infers these patterns. When you ask Claude to write code, it follows the conventions it discovered — producing output that looks like it was written by someone who's been working on the project for months.
+
+### Naming Conventions
+
+Naming is where most first-time contributors get the review comments. A codebase that uses `getUserById` elsewhere doesn't want your PR adding `fetchUserWithId`. The skill catches these:
+
+```
+# Project uses: getEntityById, createEntity, updateEntity, deleteEntity
+# Correct for new method: getUserById (not fetchUser, not retrieveUserById)
+
+# Project uses: snake_case for test file names: user_service_test.go
+# Correct for new test: auth_handler_test.go (not authHandler.test.go)
+
+# Project uses: ALL_CAPS for module-level constants
+# MY_CONSTANT = 42 (not myConstant or my_constant)
+```
+
+## Writing Good Pull Requests
+
+A good PR isn't just correct code. It's correct code presented in a way that makes it easy for maintainers to review and merge with confidence. The `spec-miner` skill helps you structure your PR like the project's existing accepted PRs.
+
+### PR Description Template
+
+After analyzing the project's existing merged PRs, Claude can generate a PR description that follows the project's expectations:
+
+```markdown
+## What
+
+Fixes the race condition in the connection pool manager where concurrent
+requests could acquire the same connection. Resolves #4821.
+
+## Why
+
+When two goroutines called `AcquireConnection` simultaneously with an
+empty pool but capacity remaining, both would see `len(pool) < maxSize`
+as true and attempt to create a new connection. This caused connections
+to exceed the pool limit under load.
+
+## How
+
+Added a mutex around the pool size check and creation in
+`AcquireConnection`. The lock is held for the minimum necessary duration
+(check + create only, not the full acquisition).
+
+## Testing
+
+- Added `TestConcurrentAcquire` with 100 goroutines acquiring simultaneously
+- Added `TestPoolLimitRespected` verifying pool never exceeds maxSize
+- Existing tests pass
+
+## Notes
+
+Alternative considered: channel-based semaphore instead of mutex.
+Chose mutex for simplicity and because this path is not performance-critical
+(connections are expensive regardless of synchronization overhead).
+```
+
+That description tells the maintainer exactly what they need to know: what changed, why it was wrong, how it was fixed, how it was tested, and that alternatives were considered.
+
+### Commit Message Conventions
+
+Projects have commit message conventions that maintainers notice immediately. Common styles:
+
+```
+# Conventional Commits style (many JS/TS projects)
+fix(pool): prevent race condition in AcquireConnection
+feat(auth): add PKCE support to OAuth flow
+docs(api): clarify rate limit header documentation
+
+# Go/Linux style — imperative mood, no period
+pool: prevent race condition in AcquireConnection
+auth: add PKCE support to OAuth flow
+
+# Issue reference style
+Fix race condition in connection pool manager (#4821)
+```
+
+The `spec-miner` skill reads the project's git log to identify the convention, then ensures your commit messages match.
+
+## Code Review Preparation
+
+Before you open a PR, reviewing your own changes with the security and quality skills helps you find problems the maintainer would catch — and fix them first.
+
+### Self-Review with Skills
+
+Load `security-reviewer` and ask: "Review the changes I'm about to submit for this project. Are there any security issues, edge cases I've missed, or patterns that don't match the rest of the codebase?"
+
+This catches:
+- Missing error handling that the rest of the codebase has
+- Security issues the maintainer's security-conscious reviewer would flag
+- Performance regressions in hot paths
+- Missing test cases for edge conditions
+
+Finding these yourself before the PR saves review cycles and shows maintainers you've done due diligence.
+
+### Running the Full Test Suite
+
+Before submitting, ask Claude to identify the full test command for this project and any pre-submit checks:
+
+"What's the full test command for this project, including any linting, formatting checks, and integration tests? What checks will CI run that I should run locally first?"
+
+For a Go project, this might be:
+
+```bash
+go test ./...
+go vet ./...
+golangci-lint run
+```
+
+For a Python project:
+
+```bash
+pytest --cov=src tests/
+black --check src/ tests/
+isort --check src/ tests/
+mypy src/
+```
+
+The skill knows to look at the CI configuration (`.github/workflows/`) to identify what the pipeline runs, so you can match it locally.
+
+## Documentation Contributions
+
+Documentation contributions are often the easiest way into a project — and the most valuable to maintainers who don't have time to write docs. The `spec-miner` skill helps you write documentation that matches the project's existing style.
+
+Ask: "How does this project document its public API? Look at the existing docs and generate documentation for the new function I added, following the same format."
+
+For a project using JSDoc:
+
+```javascript
+/**
+ * Acquires a connection from the pool, waiting if none are available.
+ *
+ * @param {Object} options - Acquisition options
+ * @param {number} [options.timeout=5000] - Maximum wait time in milliseconds
+ * @param {string} [options.label] - Optional label for connection tracking
+ * @returns {Promise<Connection>} Resolved with the acquired connection
+ * @throws {TimeoutError} If no connection becomes available within timeout
+ * @example
+ * const conn = await pool.acquire({ timeout: 3000 });
+ * try {
+ *   await conn.query('SELECT 1');
+ * } finally {
+ *   pool.release(conn);
+ * }
+ */
+async acquire(options = {}) {
+```
+
+Documentation written in the project's style gets merged. Documentation written in your style gets a review comment asking you to match the existing format.
+
+## Common Open Source Patterns
+
+The `spec-miner` skill recognizes common open source patterns across different ecosystems:
+
+**Plugin/extension systems:** How the project handles third-party extensions. When you add a new integration, the skill knows to follow the same registration and interface patterns.
+
+**Configuration patterns:** Whether the project uses environment variables, config files, or both. How defaults are defined and how users override them.
+
+**Error handling conventions:** Whether errors bubble up, get wrapped, get logged at the point of origin or higher. Getting this right is one of the most common PR review topics.
+
+**Testing patterns:** Whether tests are colocated with source files or in a separate directory, how fixtures are organized, whether mocks are handwritten or auto-generated.
+
+Understanding these patterns before you start coding means your PR matches the codebase's existing patterns — making it easy for maintainers to review quickly.
+
+## Building Your Open Source Reputation
+
+The contributors who get recognized, get commit access, and eventually become maintainers are the ones whose PRs require minimal back-and-forth. Not because they're smarter — but because they've clearly read the codebase carefully, followed conventions, tested thoroughly, and communicated clearly.
+
+Claude Code skills let you do all of that for every project you contribute to, even when you're contributing for the first time. The `spec-miner` skill reads the codebase so you understand it deeply. The `security-reviewer` and `testing-engineer` skills review your changes before they're submitted. The result: PRs that read like they were written by a long-time project contributor.
+
+## Getting Started
+
+1. Install the SuperSkills collection to `~/.claude/skills/`
+2. Clone the repository you want to contribute to
+3. Load `spec-miner` and ask Claude to map the codebase structure
+4. Find the relevant files for your change by asking Claude for the relevant code paths
+5. Make your change following the conventions Claude identified
+6. Before opening a PR: run the test suite and load `security-reviewer` for a self-review
+7. Ask Claude to draft a PR description in the project's style
+
+The first contribution to any project is the hardest. With the right skills active, it becomes a process, not a guessing game.
+
+---
+
+*Get all 106 SuperSkills including the spec-miner and full contributor toolkit — [download for $50](/#pricing) and make your next open source contribution count.*

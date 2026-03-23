@@ -1,0 +1,395 @@
+---
+title: "Claude Code for Mobile Developers"
+description: "How mobile developers use Claude Code skills to build better React Native and Flutter apps with AI-powered expertise."
+date: "2026-02-24"
+author: "SuperSkills"
+tags: ["claude code", "mobile", "react native", "flutter", "ios", "android"]
+category: "Use Case"
+---
+
+Mobile development is uniquely demanding. You're writing code that runs on thousands of different device configurations, across two operating systems with distinct design languages, with battery and memory constraints that don't exist on the web, and with app store review processes that can delay shipping by days. Getting the platform-specific details right requires knowledge that takes years to accumulate.
+
+Claude Code with mobile-specific skills collapses that learning curve. The `react-native-expert`, `flutter-expert`, and `swift-expert` skills bring platform-level knowledge directly into your workflow — navigation patterns, state management, native module integration, performance optimization, and the platform-specific idioms that separate apps users love from apps users abandon.
+
+## Mobile Skills in the SuperSkills Collection
+
+**`react-native-expert`** — React Native depth: New Architecture (JSI, Fabric, TurboModules), navigation with React Navigation 7, state management patterns, bridging native modules, performance profiling, and the Android/iOS differences that bite every developer eventually.
+
+**`flutter-expert`** — Flutter expertise: widget tree optimization, state management (Riverpod, Bloc, Provider), platform channels, custom painting, animation system, and building for iOS, Android, and web from a single codebase.
+
+**`swift-expert`** — Native iOS: SwiftUI patterns, UIKit integration, Combine and async/await, Core Data, networking with URLSession, and the Apple platform specifics that determine whether your app gets featured or rejected.
+
+## React Native: The New Architecture
+
+The React Native New Architecture (stable since 2024) changes how JavaScript bridges to native code. The `react-native-expert` skill understands both the legacy bridge and the new JSI-based system.
+
+### Component Patterns for New Architecture
+
+```tsx
+import React, { useCallback, useMemo } from 'react'
+import { FlatList, View, Text, Pressable, StyleSheet } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import type { RootStackParamList } from '../navigation/types'
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ProductList'>
+
+interface Product {
+  id: string
+  name: string
+  price: number
+  imageUrl: string
+}
+
+interface ProductListProps {
+  products: Product[]
+  onRefresh: () => void
+  refreshing: boolean
+}
+
+export function ProductList({ products, onRefresh, refreshing }: ProductListProps) {
+  const navigation = useNavigation<NavigationProp>()
+
+  // useCallback prevents renderItem recreation on every parent render
+  const renderItem = useCallback(({ item }: { item: Product }) => (
+    <ProductCard
+      product={item}
+      onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
+    />
+  ), [navigation])
+
+  // keyExtractor must be stable — never use array index
+  const keyExtractor = useCallback((item: Product) => item.id, [])
+
+  // getItemLayout enables scroll-to-index and skips measurement
+  const getItemLayout = useCallback(
+    (_: unknown, index: number) => ({
+      length: ITEM_HEIGHT,
+      offset: ITEM_HEIGHT * index,
+      index,
+    }),
+    []
+  )
+
+  return (
+    <FlatList
+      data={products}
+      renderItem={renderItem}
+      keyExtractor={keyExtractor}
+      getItemLayout={getItemLayout}
+      onRefresh={onRefresh}
+      refreshing={refreshing}
+      removeClippedSubviews={true}  // unmounts off-screen items on Android
+      maxToRenderPerBatch={10}
+      windowSize={5}
+    />
+  )
+}
+
+const ITEM_HEIGHT = 100
+```
+
+The skill knows the React Native performance pitfalls: recreating `renderItem` on every render defeats `FlatList`'s optimization, `getItemLayout` is crucial for long lists, `removeClippedSubviews` helps Android specifically, and `maxToRenderPerBatch` / `windowSize` tune the rendering window.
+
+### Navigation Type Safety
+
+```tsx
+// types/navigation.ts
+export type RootStackParamList = {
+  Home: undefined
+  ProductList: { categoryId: string }
+  ProductDetail: { productId: string }
+  Checkout: { items: CartItem[]; total: number }
+  OrderConfirmation: { orderId: string }
+}
+
+// Fully typed navigation usage
+function ProductCard({ product }: { product: Product }) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'ProductList'>>()
+
+  return (
+    <Pressable
+      onPress={() => navigation.navigate('ProductDetail', { productId: product.id })}
+      android_ripple={{ color: '#e0e0e0' }}  // Android ripple effect
+      style={({ pressed }) => [
+        styles.card,
+        pressed && styles.cardPressed,  // iOS press feedback
+      ]}
+    >
+      <Text>{product.name}</Text>
+    </Pressable>
+  )
+}
+```
+
+The skill handles platform differences automatically: `android_ripple` for Material Design touch feedback, `style` function pattern for iOS press states, and typed navigation params that catch route mistakes at compile time.
+
+## Flutter: Widget Tree Optimization
+
+Flutter's performance model is different from React Native — everything is a widget, rendering happens differently, and optimization means different things.
+
+### State Management with Riverpod
+
+```dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+// Providers are global and automatically cached/disposed
+final productListProvider = FutureProvider.family<List<Product>, String>(
+  (ref, categoryId) async {
+    final repository = ref.watch(productRepositoryProvider);
+    return repository.fetchByCategory(categoryId);
+  },
+);
+
+// Notifier for complex state
+class CartNotifier extends AutoDisposeNotifier<CartState> {
+  @override
+  CartState build() => const CartState.empty();
+
+  void addItem(Product product, int quantity) {
+    state = state.copyWith(
+      items: [...state.items, CartItem(product: product, quantity: quantity)],
+    );
+  }
+
+  void removeItem(String productId) {
+    state = state.copyWith(
+      items: state.items.where((item) => item.product.id != productId).toList(),
+    );
+  }
+}
+
+final cartProvider = NotifierProvider.autoDispose<CartNotifier, CartState>(
+  CartNotifier.new,
+);
+
+// Widget consuming the provider
+class ProductListScreen extends ConsumerWidget {
+  final String categoryId;
+  const ProductListScreen({required this.categoryId, super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final productsAsync = ref.watch(productListProvider(categoryId));
+
+    return productsAsync.when(
+      loading: () => const ProductListSkeleton(),
+      error: (error, stack) => ErrorView(error: error, onRetry: () =>
+        ref.invalidate(productListProvider(categoryId))),
+      data: (products) => ProductGrid(products: products),
+    );
+  }
+}
+```
+
+The `flutter-expert` skill chooses Riverpod for its compile-time safety, automatic disposal (`autoDispose`), and `family` modifier for parameterized providers. The `.when()` pattern handles all three async states cleanly.
+
+### Custom Painting for UI That Stands Out
+
+```dart
+class RadialProgressPainter extends CustomPainter {
+  final double progress;  // 0.0 to 1.0
+  final Color backgroundColor;
+  final Color progressColor;
+  final double strokeWidth;
+
+  const RadialProgressPainter({
+    required this.progress,
+    this.backgroundColor = const Color(0xFFE0E0E0),
+    this.progressColor = const Color(0xFF2563EB),
+    this.strokeWidth = 8.0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.shortestSide - strokeWidth) / 2;
+
+    final backgroundPaint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    final progressPaint = Paint()
+      ..color = progressColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    // Background circle
+    canvas.drawCircle(center, radius, backgroundPaint);
+
+    // Progress arc
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2,            // start from top
+      2 * math.pi * progress,  // sweep angle based on progress
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(RadialProgressPainter oldDelegate) =>
+    progress != oldDelegate.progress;
+}
+```
+
+The skill knows `shouldRepaint` — returning `false` when nothing changed is a critical Flutter optimization that prevents unnecessary repaints.
+
+## Platform-Specific Code Patterns
+
+Cross-platform doesn't mean identical. The `react-native-expert` skill knows when to branch on platform:
+
+```tsx
+import { Platform, StyleSheet } from 'react-native'
+
+const styles = StyleSheet.create({
+  shadow: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+    },
+    android: {
+      elevation: 4,
+    },
+  }),
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: Platform.OS === 'ios' ? '600' : 'bold',
+    fontFamily: Platform.select({
+      ios: 'System',
+      android: 'Roboto',
+    }),
+  },
+})
+```
+
+Shadows work completely differently between iOS (shadow properties) and Android (elevation). Typography uses system fonts differently. The skill handles these silently, producing code that looks correct on both platforms.
+
+## Handling Deep Linking and Push Notifications
+
+These two features trip up almost every mobile app at some point. The skill handles them correctly:
+
+```tsx
+// Deep link configuration
+const linking = {
+  prefixes: ['myapp://', 'https://myapp.com'],
+  config: {
+    screens: {
+      Home: '',
+      ProductDetail: 'products/:productId',
+      OrderConfirmation: {
+        path: 'orders/:orderId/confirmation',
+        parse: { orderId: (id: string) => id },
+      },
+    },
+  },
+}
+
+// Notification handling
+import notifee, { EventType } from '@notifee/react-native'
+
+async function setupNotifications() {
+  // Request permission (iOS requires explicit permission)
+  const settings = await notifee.requestPermission()
+  if (settings.authorizationStatus < AuthorizationStatus.AUTHORIZED) {
+    return
+  }
+
+  // Create Android channel (required for Android 8+)
+  await notifee.createChannel({
+    id: 'orders',
+    name: 'Order Updates',
+    importance: AndroidImportance.HIGH,
+    vibration: true,
+    sound: 'default',
+  })
+}
+
+// Handle notification taps from background/quit state
+notifee.onBackgroundEvent(async ({ type, detail }) => {
+  if (type === EventType.PRESS) {
+    const { notification } = detail
+    if (notification?.data?.orderId) {
+      // Navigate to order detail — must handle after app opens
+      await AsyncStorage.setItem('pendingDeepLink', `/orders/${notification.data.orderId}`)
+    }
+  }
+})
+```
+
+The skill handles: iOS requires explicit permission requests (Android 13+ does too), Android 8+ requires notification channels, background event handlers run before the app is fully loaded, and deep link navigation needs to wait for the navigator to be ready.
+
+## Swift for Native iOS
+
+When native iOS performance is critical, the `swift-expert` skill produces modern Swift:
+
+```swift
+import SwiftUI
+import Combine
+
+// Modern async/await networking
+actor ProductRepository {
+    private let apiClient: APIClient
+    private var cache: [String: Product] = [:]
+
+    init(apiClient: APIClient) {
+        self.apiClient = apiClient
+    }
+
+    func fetchProduct(id: String) async throws -> Product {
+        if let cached = cache[id] {
+            return cached
+        }
+
+        let product = try await apiClient.fetch(Product.self, path: "/products/\(id)")
+        cache[id] = product
+        return product
+    }
+}
+
+// SwiftUI view with proper state management
+struct ProductDetailView: View {
+    let productId: String
+    @StateObject private var viewModel: ProductDetailViewModel
+
+    init(productId: String) {
+        self.productId = productId
+        _viewModel = StateObject(wrappedValue: ProductDetailViewModel(productId: productId))
+    }
+
+    var body: some View {
+        Group {
+            switch viewModel.state {
+            case .loading:
+                ProgressView()
+            case .loaded(let product):
+                ProductContent(product: product)
+            case .error(let error):
+                ErrorView(error: error, retry: viewModel.load)
+            }
+        }
+        .task { await viewModel.load() }
+        .navigationTitle(viewModel.state.product?.name ?? "")
+    }
+}
+```
+
+The skill uses `actor` for thread-safe shared state (Swift Concurrency), `@StateObject` over `@ObservedObject` for view-owned view models, and `.task { }` over `.onAppear { Task { ... } }` for lifecycle-tied async work.
+
+## Getting Started
+
+1. Install SuperSkills to `~/.claude/skills/`
+2. Open your mobile project in Claude Code
+3. Skills activate based on project context — React Native for `.tsx` files with RN imports, Flutter for `.dart` files
+4. Start building: "Add pull-to-refresh to this screen," "Set up deep linking for the app," "Create a custom animated tab bar"
+
+The first component Claude builds that handles platform-specific styling, uses optimized list rendering, and types navigation routes correctly without multiple rounds of feedback — that's the moment mobile development with AI starts to feel genuinely different.
+
+---
+
+*Get all 106 SuperSkills including the complete mobile development suite — [download for $50](/#pricing) and ship better mobile apps starting today.*

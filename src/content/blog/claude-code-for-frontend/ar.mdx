@@ -1,0 +1,277 @@
+---
+title: "Claude Code لمطوري الواجهة الأمامية"
+description: "كيف يستخدم مطوري الواجهة الأمامية مهارات Claude Code لبناء تطبيقات React وNext.js وVue أفضل بخبرة مدعومة بالذكاء الاصطناعي."
+date: "2026-03-10"
+author: "SuperSkills"
+tags: ["claude code", "واجهة أمامية", "react", "nextjs", "vue"]
+category: "حالة استخدام"
+---
+
+تطوير الواجهة الأمامية لم يتحرك بهذه السرعة من قبل. React Server Components، وNext.js App Router، وVue Composition API، وTypeScript 5، وTailwind v4 — يتحول النظام البيئي كل بضعة أشهر، ومواكبة ذلك أثناء الشحن الفعلي تحدٍّ حقيقي.
+
+Claude Code مع المهارات المناسبة لا يُكمل الكود فحسب. بل يستدل بمعرفة خاصة بالإطار، ويطبق أفضل الممارسات الحالية، ويلتقط أنواع الأخطاء التي تظهر فقط في وقت التشغيل أو تحت الضغط.
+
+## مهارات الواجهة الأمامية في مجموعة SuperSkills
+
+تشكّل هذه المهارات مجموعة الأدوات الأساسية للواجهة الأمامية:
+
+**`react-expert`** — أنماط React 18+: Server Components، وSuspense، والميزات المتزامنة، وأنماط hook الصحيحة، وتقنيات تحسين الأداء.
+
+**`nextjs-developer`** — خبرة Next.js App Router: قرارات server مقابل client component، وأنماط جلب البيانات، وmetadata API، ومعالجات المسارات، وتحسين النشر.
+
+**`vue-expert`** — إتقان Vue 3 Composition API: `<script setup>`، والـcomposables، وPinia، وأنماط Vue Router، وأفضل ممارسات الأداء.
+
+**`typescript-pro`** — TypeScript متقدم: الوضع الصارم، والـgenerics، والـdiscriminated unions، وحراسات الأنواع، وأنواع الأداة المساعدة، والأنماط التي تجعل TypeScript مفيداً حقاً وليس مزعجاً فقط.
+
+**`ui-ux-pro-max`** — مهارة تنفيذ التصميم: التباعد، والطباعة، وإمكانية الوصول، والأنماط المتجاوبة، ومبادئ الرسوم المتحركة، وتحويل التصاميم إلى واجهات بجودة إنتاجية.
+
+**`playwright-tester`** — اختبار end-to-end مع Playwright: بنية الاختبارات، واستراتيجيات المحددات، ومحاكاة الشبكة، والانحدار البصري، والتكامل مع CI.
+
+تنشط كل مهارة تلقائياً عندما يكتشف Claude Code السياق ذو الصلة — لا حاجة للتفعيل اليدوي.
+
+## بناء المكوّنات بشكل أسرع
+
+الفائدة الأكثر مباشرة هي جودة المكوّن في المحاولة الأولى. بدون مهارة واجهة أمامية، يكتب Claude كوداً وظيفياً. مع نشاط `react-expert`، يكتب كوداً اصطلاحياً وعالي الأداء بالأنماط الصحيحة من البداية.
+
+### مثال: مكوّن جدول البيانات
+
+بدون مهارات، يُرجع طلب جدول البيانات تنفيذاً مباشراً: مكوّن يجلب البيانات في `useEffect`، ويخزّنها في `useState`، ويعرض جدولاً، وربما يتعامل مع التحميل بعلامة boolean.
+
+مع نشاط مهارتَي `react-expert` و`nextjs-developer`، يُرجع نفس الطلب:
+
+```tsx
+// app/users/page.tsx — Server Component بشكل افتراضي
+import { Suspense } from 'react'
+import { UserTable } from './user-table'
+import { UserTableSkeleton } from './user-table-skeleton'
+
+export default function UsersPage() {
+  return (
+    <Suspense fallback={<UserTableSkeleton />}>
+      <UserTable />
+    </Suspense>
+  )
+}
+```
+
+```tsx
+// app/users/user-table.tsx — async Server Component
+import { getUsers } from '@/lib/data'
+
+export async function UserTable() {
+  const users = await getUsers() // async/await مباشر، بدون useEffect
+
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">الاسم</th>
+          <th scope="col">البريد الإلكتروني</th>
+          <th scope="col">الدور</th>
+        </tr>
+      </thead>
+      <tbody>
+        {users.map((user) => (
+          <tr key={user.id}>
+            <td>{user.name}</td>
+            <td>{user.email}</td>
+            <td>{user.role}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+```
+
+المهارة عرفت: استخدام Server Component لجلب البيانات (لا شلال من جانب العميل)، ولفّه بـSuspense مع skeleton للبث، واستخدام `scope="col"` على الرؤوس لإمكانية الوصول، وجلب البيانات بـasync/await مباشر بدلاً من hooks.
+
+هذا ليس سحراً — هذا ما سيكتبه مطور Next.js أول. المهارة تُقنّن تلك المعرفة.
+
+## إدارة الحالة بشكل صحيح
+
+قرارات إدارة الحالة هي أحد أكبر مصادر التعقيد في تطبيقات الواجهة الأمامية. تُقنّن مهارة `react-expert` إرشادات واضحة حول ما ينتمي إلى أين.
+
+اطلب من Claude "أضف وظيفة عربة التسوق لهذا التطبيق" وستحصل مع المهارة النشطة على:
+
+- **React Query** لبيانات المنتج والتحقق من العربة ومعالجات checkout — لأن هذه تتضمن مزامنة الخادم
+- **Zustand** لحالة واجهة العربة (درج مفتوح/مغلق، تحديثات تفاؤلية) — لأن هذه حالة واجهة محلية
+- **حالة URL** للفلاتر والبحث — لأن هذه قابلة للمشاركة ومستمرة
+- **`useState`** لمدخلات النماذج الفردية — لأن هذا النطاق لا يحتاج إلى كونه عاماً
+
+بدون المهارة، قد يلجأ Claude إلى مخزن Redux عام واحد لكل شيء، أو يضع بيانات الخادم في `useState` دون تخزين مؤقت، أو يرفع الحالة بشكل غير ضروري. المهارة تمنع هذه الأخطاء المعمارية قبل أن تحدث.
+
+## التصميم المتجاوب وTailwind
+
+تُغير مهارة `ui-ux-pro-max` طريقة تعامل Claude مع التصميم المتجاوب. بدلاً من إضافة نقاط التوقف كفكرة لاحقة، تُطبّق المهارة التفكير الأول للموبايل:
+
+```tsx
+// بدون مهارة — desktop-first مع تجاوزات نقاط التوقف
+<div className="grid grid-cols-3 md:grid-cols-2 sm:grid-cols-1">
+
+// مع ui-ux-pro-max — mobile-first، مقياس تباعد صحيح
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+```
+
+المهارة تلتقط أيضاً أخطاء التصميم الشائعة:
+- نص صغير جداً على الموبايل (أقل من 16px كحجم أساسي)
+- مناطق اللمس صغيرة جداً (أقل من 44x44px)
+- أنماط focus مفقودة للتنقل بلوحة المفاتيح
+- نسب تباين الألوان التي تفشل في WCAG AA
+- صور بدون نص `alt` أو صور زخرفية بدون `alt=""`
+
+هذه لا تلتقطها TypeScript أو ESLint — بل تتطلب معرفة تصميم. المهارة توفر ذلك.
+
+## إمكانية الوصول بشكل افتراضي
+
+تجعل مهارة `ui-ux-pro-max` Claude واعياً بإمكانية الوصول عبر جميع المكوّنات. عندما تطلب مكوّن نافذة منبثقة، تحصل على واحدة تقوم بـ:
+
+- حصر التركيز داخل النافذة المنبثقة عند فتحها
+- إعادة التركيز إلى عنصر التشغيل عند الإغلاق
+- الاستجابة لمفتاح Escape
+- وجود `role="dialog"` و`aria-modal="true"`
+- وجود عنوان مُسمّى عبر `aria-labelledby`
+- منع تمرير الجسم عند الفتح
+
+عندما تطلب قائمة منسدلة، تحصل على أنماط ARIA لـ`role="menu"` مع التنقل بلوحة المفاتيح (مفاتيح الأسهم، Home، End، البحث بالأحرف).
+
+عندما تطلب نموذجاً، تحصل على عناصر `<label>` مناسبة مرتبطة بالمدخلات، ورسائل أخطاء مرتبطة عبر `aria-describedby`، والحقول المطلوبة مُعلَّمة بـ`aria-required`.
+
+هذا هو الفرق بين الكود الذي يبدو في متناول الجميع والكود الذي هو كذلك فعلاً.
+
+## أنماط TypeScript التي تتوسع
+
+تُحوّل مهارة `typescript-pro` طريقة استخدام Claude لـTypeScript. تتخطى التعليقات التوضيحية الأساسية للأنواع إلى أنماط تمنع فئات كاملة من الأخطاء.
+
+### Discriminated Unions لحالة API
+
+```typescript
+// بدون مهارة — علامات boolean هشة
+interface FetchState {
+  data: User[] | null
+  loading: boolean
+  error: string | null
+}
+
+// مع typescript-pro — شاملة وآمنة من حيث النوع
+type FetchState<T> =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; data: T }
+  | { status: 'error'; error: Error }
+
+// المُجمِّع يُطبّق التعامل الشامل
+function render(state: FetchState<User[]>) {
+  switch (state.status) {
+    case 'idle': return <EmptyState />
+    case 'loading': return <Skeleton />
+    case 'success': return <UserList users={state.data} />
+    case 'error': return <ErrorMessage error={state.error} />
+  }
+}
+```
+
+### Branded Types للأمان
+
+```typescript
+// بدون مهارة — سهل الخلط بين المعرفات
+function getUser(userId: string) { ... }
+function getPost(postId: string) { ... }
+getUser(postId) // يسمح به TypeScript — لا يجب
+
+// مع typescript-pro — منع في وقت الترجمة
+type UserId = string & { readonly __brand: 'UserId' }
+type PostId = string & { readonly __brand: 'PostId' }
+
+function getUser(userId: UserId) { ... }
+function getPost(postId: PostId) { ... }
+getUser(postId) // خطأ TypeScript — السلوك الصحيح
+```
+
+هذه الأنماط لا تلتقط الأخطاء فقط أثناء التطوير — بل تجعل قاعدة الكود موثِّقة لنفسها.
+
+## الاختبار مع Playwright
+
+تجعل مهارة `playwright-tester` اختبارات E2E لـClaude موثوقة فعلاً. المشاكل الشائعة مع اختبارات Playwright التي تُنتجها الذكاء الاصطناعي: محددات هشة، انتظارات مفقودة، لا معالجة للأخطاء، اختبارات تنجح في CI لكن تفشل محلياً (أو العكس).
+
+مع المهارة، يكتب Claude اختبارات:
+
+```typescript
+// محددات مستقرة باستخدام أدوار ARIA ومعرفات الاختبار
+await page.getByRole('button', { name: 'أضف إلى العربة' }).click()
+await page.getByTestId('cart-drawer').waitFor({ state: 'visible' })
+await expect(page.getByRole('status')).toContainText('عنصر 1')
+
+// محاكاة الشبكة لاختبارات موثوقة
+await page.route('**/api/products', route =>
+  route.fulfill({
+    status: 200,
+    body: JSON.stringify(mockProducts)
+  })
+)
+
+// تنظيف وعزل مناسبَين
+test.beforeEach(async ({ page }) => {
+  await page.goto('/shop')
+  await page.evaluate(() => localStorage.clear())
+})
+```
+
+المهارة تعرف استخدام `getByRole` بدلاً من محددات CSS، واستخدام `waitFor` بدلاً من `sleep` التعسفي، ومحاكاة طلبات الشبكة لاختبارات محددة، وعزل الحالة بين الاختبارات.
+
+## Vue 3 مع مهارة `vue-expert`
+
+يحصل مطورو Vue على نفس تحسين الجودة. تضمن مهارة `vue-expert` أن Claude يكتب كود Vue 3 حديث:
+
+```vue
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useUserStore } from '@/stores/user'
+import type { User } from '@/types'
+
+// نمط composable بدلاً من mixins لـOptions API
+const { users, fetchUsers, isLoading } = useUsers()
+
+// computed للحالة المشتقة، وليس للبيانات
+const activeUsers = computed(() =>
+  users.value.filter(u => u.status === 'active')
+)
+
+onMounted(fetchUsers)
+</script>
+
+<template>
+  <div>
+    <LoadingSpinner v-if="isLoading" />
+    <UserList v-else :users="activeUsers" />
+  </div>
+</template>
+```
+
+المهارة تمنع: Options API عندما يكون Composition API متاحاً، والتحولات المباشرة لـVuex دون actions، ومراجع القالب بدون تعليقات توضيحية للأنواع، و`v-for` بدون `:key`.
+
+## التأثير المركّب: تراكم المهارات
+
+تظهر القوة الحقيقية عندما تعمل مهارات متعددة معاً. قد تحمّل جلسة واجهة أمامية نموذجية `react-expert` و`nextjs-developer` و`typescript-pro` و`ui-ux-pro-max` في آنٍ واحد.
+
+عندما تطلب من Claude "بناء صفحة قائمة المنتجات مع التصفية والفرز والتمرير اللانهائي"، فإنه يستمد من جميع المهارات الأربع:
+
+- **`nextjs-developer`** يتعامل مع تقسيم server/client وبنية جلب البيانات وحالة الفلتر المبنية على URL
+- **`react-expert`** يُهيكل شجرة المكوّنات ويتعامل مع حدود Suspense ويُحسّن إعادة الرسم
+- **`typescript-pro`** يُكتّب حالة الفلتر وبيانات المنتج ومعالجات الأحداث بشكل شامل
+- **`ui-ux-pro-max`** يضمن أن الشبكة متجاوبة وأن حالات التحميل تستخدم skeletons وأن جميع العناصر التفاعلية في متناول لوحة المفاتيح
+
+النتيجة هي كود بجودة إنتاجية من طلب واحد، لا بعد خمس جولات من التكرار.
+
+## البدء
+
+1. ثبّت SuperSkills في `~/.claude/skills/`
+2. شغّل Claude Code في مشروع الواجهة الأمامية الخاص بك
+3. تنشط المهارات بناءً على أنواع الملفات والكلمات المفتاحية — لا حاجة لأي إعداد
+4. ابدأ البناء: "أنشئ مكوّن نموذج مع التحقق"، "أضف المصادقة لتطبيق Next.js هذا"، "اكتب اختبارات Playwright لتدفق الدفع"
+
+المكوّن الأول الذي يُنشئه Claude والذي يتعامل بشكل مثالي مع حالات التحميل وإمكانية الوصول وأنواع TypeScript والتخطيط المتجاوب دون أن يُسأل — هذه هي اللحظة التي تصبح فيها قيمة المهارات لا يمكن إنكارها.
+
+---
+
+*احصل على 106 مهارات SuperSkills بما فيها مجموعة الواجهة الأمامية الكاملة — [نزّلها بـ $50](/pricing) وابنِ كود واجهة أمامية أفضل من اليوم.*

@@ -1,0 +1,178 @@
+---
+title: "How to Debug Faster with Claude Code"
+description: "Learn systematic debugging techniques with Claude Code — from reading error messages to tracing execution flow to fixing the root cause."
+date: "2026-02-10"
+author: "SuperSkills"
+tags: ["claude code", "debugging", "error fixing", "tutorial"]
+category: "Tutorial"
+---
+
+Debugging is where developers lose hours. Not because the bugs are impossible to fix — but because finding the root cause is a slow, manual, often frustrating process. Claude Code changes that. With the right approach and the `debugging-wizard` skill active, you can systematically diagnose and fix bugs in a fraction of the time.
+
+This guide walks you through a complete debugging methodology with Claude Code.
+
+---
+
+## The Problem with Ad-Hoc Debugging
+
+Most developers debug the same way: stare at the error, Google it, try a fix, refresh, stare again. This works eventually, but it's inefficient. You're pattern-matching against past experience instead of applying a systematic process.
+
+Claude Code lets you apply a structured approach every time — one that traces from symptom to root cause without guessing.
+
+---
+
+## The Four-Step Debugging Loop
+
+### Step 1: Read the Error Completely
+
+The first instinct is to skim the error message and jump to the line number. Don't. Give Claude the full error output — including the stack trace, the context, and any relevant logs — and ask it to explain what actually happened.
+
+```
+Paste this error into Claude:
+
+TypeError: Cannot read properties of undefined (reading 'map')
+    at ProductList (src/components/ProductList.tsx:23:18)
+    at renderWithHooks (react-dom/cjs/react-dom.development.js:14985:18)
+    at mountIndeterminateComponent (...)
+```
+
+Ask: "Explain what this error means and what could cause it."
+```
+
+Claude will explain: the component is trying to call `.map()` on a value that is `undefined`. This happens before the data has loaded, or when the data fetch failed silently. Now you have a hypothesis.
+
+### Step 2: Form a Hypothesis
+
+Good debugging is about forming and testing hypotheses, not trying random fixes. After reading the error with Claude, ask it to list the most likely causes in order of probability.
+
+```
+Ask Claude: "What are the three most likely causes of this error in a React component that fetches data?"
+```
+
+You'll get a ranked list:
+1. The initial state is `undefined` instead of an empty array
+2. The API returned an error and the error wasn't handled
+3. The prop type is wrong — a parent is passing `undefined`
+
+Now you have a checklist, not a guessing game.
+
+### Step 3: Trace the Execution Flow
+
+For complex bugs, the error location is often far from the root cause. The `debugging-wizard` skill helps Claude trace backwards through the call stack to find where things went wrong.
+
+Share the relevant code and ask:
+
+```
+"Trace the execution path that leads to this error. Start from where `products`
+is first defined and follow it to where it's used in the render."
+```
+
+Claude will walk through: where the state is initialized, where it's set (the `useEffect`), what happens if the fetch throws, and where the undefined value propagates. This is the kind of tracing that would take you 10 minutes manually.
+
+### Step 4: Fix the Root Cause, Not the Symptom
+
+This is the most important step. Many developers fix the symptom — adding a `?.` optional chain here, a null check there — without fixing why the value is undefined in the first place. This leads to fragile code that breaks in new ways later.
+
+Ask Claude: "What is the root cause fix, not just the symptom fix?"
+
+For our example:
+- **Symptom fix:** `products?.map(...)` — hides the error but doesn't fix the data flow
+- **Root cause fix:** Initialize state as `[]`, handle the fetch error properly, and add a loading state
+
+Claude will write the complete fix, not just the band-aid.
+
+---
+
+## Stack Trace Analysis
+
+Stack traces look intimidating but follow a consistent pattern. Claude Code reads them naturally. When you paste a full stack trace and ask "where did this actually go wrong?", Claude identifies the first frame in *your* code (not the library internals) and explains what was happening at that point.
+
+**Useful prompts for stack traces:**
+
+- "Which line in my code caused this, ignoring the library internals?"
+- "What was the call chain that led to this error?"
+- "Is this error in my code or a bug in the library?"
+
+---
+
+## Log Correlation
+
+Sometimes bugs don't produce clear errors — they produce wrong behavior. Maybe a price shows as `$0`, or a user gets logged out unexpectedly. This is where logs become essential.
+
+The `debugging-wizard` skill helps Claude analyze log output systematically:
+
+```
+Paste your logs and ask: "These are the logs from a failed checkout.
+Identify the point where the flow diverged from expected behavior."
+```
+
+Claude will look for: missing expected log lines, unexpected values in logged data, timing anomalies, and sequences that indicate skipped steps.
+
+**Pro tip:** Add structured logging to your app. Logs like `{ event: "checkout_started", userId: "123", cartTotal: 0 }` are far more useful than `"checkout started"`. Claude can analyze structured logs much more effectively.
+
+---
+
+## Common Error Patterns
+
+After working through thousands of debugging sessions, certain patterns repeat. The `debugging-wizard` skill has deep knowledge of these:
+
+**Async/await mistakes:**
+```javascript
+// Bug: missing await
+const user = getUser(id); // returns Promise, not user
+console.log(user.name); // TypeError: Cannot read properties of Promise
+```
+
+**Race conditions:**
+```javascript
+// Bug: state update during unmount
+useEffect(() => {
+  fetchData().then(data => setState(data)); // component may be unmounted
+}, []);
+```
+
+**Closure traps:**
+```javascript
+// Bug: stale closure in event handler
+const [count, setCount] = useState(0);
+const handleClick = () => console.log(count); // always logs 0
+```
+
+When you see a bug that looks like one of these, tell Claude which pattern you suspect — it will verify and provide the correct fix.
+
+---
+
+## A Real Debugging Session Walkthrough
+
+Here's how an actual session with `debugging-wizard` looks:
+
+**You:** "My form submission works in development but fails silently in production. No errors in the console."
+
+**Claude:** "Silent failures in production typically come from: CORS headers missing on the API, environment variables not set in production, or an error being caught and swallowed somewhere. Let's check each. Can you share your API call code and your error handling?"
+
+**You:** [paste code]
+
+**Claude:** "Found it. Your `catch` block is empty — errors are being caught but not logged or surfaced. In production, your API URL is also pointing to `localhost` because `NEXT_PUBLIC_API_URL` isn't set. Fix both: add error logging to your catch block, and verify your environment variables in your deployment settings."
+
+That's a 2-minute debugging session that could have taken an hour.
+
+---
+
+## Setting Up Debugging Workflows
+
+To get the most from Claude Code debugging:
+
+1. **Always paste the full error** — truncated errors lead to incorrect diagnoses
+2. **Include relevant code context** — the component/function where the error occurs
+3. **Describe what you expected vs what happened** — this gives Claude the right frame
+4. **Use the `debugging-wizard` skill** — it activates automatically on error-related prompts, but you can trigger it explicitly with "debug this"
+
+---
+
+## Debugging Is a Skill That Compounds
+
+The more you debug systematically with Claude Code, the more you internalize the patterns. After a few months, you'll start catching bugs before they happen — because you've seen enough root causes to recognize them in code review.
+
+The `debugging-wizard` skill is part of the SuperSkills library. It comes with 105 other domain-specific skills that make Claude Code an expert in whatever you're building.
+
+**Ready to debug 10x faster?** Check out the full SuperSkills library at [/#pricing](/#pricing) — all 106 skills, one flat price.

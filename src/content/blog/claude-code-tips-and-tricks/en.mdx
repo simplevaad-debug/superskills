@@ -1,0 +1,347 @@
+---
+title: "25 Claude Code Tips and Tricks for Power Users"
+description: "Advanced tips and tricks to get more from Claude Code — keyboard shortcuts, hidden features, workflow hacks, and productivity secrets."
+date: "2026-02-02"
+author: "SuperSkills"
+tags: ["claude code", "tips", "tricks", "productivity", "power user"]
+category: "Listicle"
+---
+
+Most developers use 20% of Claude Code's capabilities. The other 80% is sitting there, unused — waiting to make you dramatically faster. These 25 tips are what separate casual users from power users. Work through them once and you'll never go back.
+
+---
+
+## Setup
+
+### 1. Configure CLAUDE.md for Every Project
+
+`CLAUDE.md` is the first file Claude reads in any project. Use it to define your stack, conventions, and preferences — so you never have to repeat yourself.
+
+```markdown
+# Project: E-commerce API
+Stack: Node.js, TypeScript, PostgreSQL, Prisma, Express
+Test runner: Vitest
+Style: Prettier with 2-space indent, single quotes
+Conventions:
+- Use async/await, never callbacks
+- All API routes need input validation via Zod
+- Errors go through the centralized error handler
+```
+
+With a good `CLAUDE.md`, Claude knows your conventions from the first message in every session.
+
+### 2. Use Memory to Persist Context
+
+Claude's memory system remembers things across sessions. Tell it important things once:
+
+```
+/memory "We use Railway for deployment. Backend is at api.myapp.com.
+Frontend is at myapp.com. Staging is at staging.myapp.com."
+```
+
+Now you never have to explain your deployment setup again.
+
+### 3. Set a Default Persona in CLAUDE.md
+
+Add this to your `CLAUDE.md`:
+
+```markdown
+When I don't specify otherwise, act as a senior TypeScript engineer
+who values simplicity, correctness, and maintainability over cleverness.
+```
+
+This shapes every response without you having to ask.
+
+### 4. Create Project-Specific Slash Commands
+
+Define custom slash commands in your project's `.claude/commands/` directory:
+
+```markdown
+# .claude/commands/new-component.md
+Create a new React component with:
+- TypeScript props interface
+- Default export
+- Basic unit test file
+- Storybook story
+
+Component name: $ARGUMENTS
+```
+
+Now `/new-component Button` creates all four files.
+
+### 5. Use .claudeignore to Keep Context Clean
+
+Like `.gitignore`, `.claudeignore` tells Claude which files to skip. Add build output, `node_modules`, generated files:
+
+```
+node_modules/
+dist/
+.next/
+*.generated.ts
+coverage/
+```
+
+Smaller context = faster responses = more focused answers.
+
+---
+
+## Navigation
+
+### 6. Master @ File References
+
+Instead of "the file at src/components/auth/LoginForm.tsx", type `@src/components/auth/LoginForm.tsx`. Claude gets the exact file contents with zero copy-paste.
+
+Chain multiple references: "Compare `@src/auth/v1.ts` with `@src/auth/v2.ts` and explain the differences."
+
+### 7. Use # to Reference Memories Inline
+
+If you've saved memories, reference them with `#`:
+
+```
+Add rate limiting to the API endpoints as specified in #deployment-config
+```
+
+### 8. Learn the Essential Keyboard Shortcuts
+
+- `Ctrl+K` (or `Cmd+K`) — clear context, start fresh
+- `Ctrl+R` — search conversation history
+- `Ctrl+L` — jump to last message
+- `Tab` — accept autocomplete in the input
+- `↑/↓` — navigate message history
+
+### 9. Use Slash Commands for Repetitive Tasks
+
+Built-in slash commands you should know:
+- `/review` — code review mode
+- `/test` — generate tests for current file
+- `/explain` — explain the selected code
+- `/refactor` — refactor with a description of goal
+- `/commit` — generate a commit message from staged changes
+
+### 10. Pin Important Files for Long Sessions
+
+In long sessions, use `@file` references to keep critical files in context. When working on a feature, pin your main component, its types, and its test file — and reference them together:
+
+```
+Looking at @src/components/Checkout.tsx, @src/types/checkout.ts,
+and @src/tests/checkout.test.ts — what's the best way to add
+the discount code feature?
+```
+
+---
+
+## Workflow
+
+### 11. Use Hooks for Automated Actions
+
+Claude Code hooks run automatically on events. The most useful:
+
+```json
+// .claude/hooks.json
+{
+  "PostToolUse": [
+    {
+      "matcher": "Edit",
+      "hooks": [{ "type": "command", "command": "npx prettier --write $CLAUDE_FILE_PATHS" }]
+    }
+  ]
+}
+```
+
+Now every file Claude edits is automatically formatted. No more formatting fixes after AI edits.
+
+### 12. Run Parallel Agents for Independent Tasks
+
+When you have multiple independent tasks, don't run them sequentially. Use subagents:
+
+```
+Spawn three parallel agents:
+1. Agent 1: Write unit tests for src/services/auth.ts
+2. Agent 2: Write unit tests for src/services/payment.ts
+3. Agent 3: Write unit tests for src/services/email.ts
+Report back when all three are done.
+```
+
+Three tasks done simultaneously — 3x faster than sequential.
+
+### 13. Use Git Worktrees for Parallel Feature Development
+
+Worktrees let you have multiple branches checked out simultaneously, perfect for running parallel Claude agents on different features:
+
+```bash
+git worktree add ../feature-payments feature/payments
+git worktree add ../feature-auth feature/auth
+```
+
+Run one Claude session in each directory — independent context, no interference.
+
+### 14. Create Reusable Prompt Templates
+
+Save your best prompts as templates in `.claude/templates/`:
+
+```markdown
+# .claude/templates/api-endpoint.md
+Create a complete API endpoint for [RESOURCE]:
+1. Route definition with proper HTTP method
+2. Input validation with Zod
+3. Service layer function
+4. Database query (Prisma)
+5. Error handling
+6. Unit test
+7. Integration test
+```
+
+Reference it: "Use @.claude/templates/api-endpoint.md for the orders endpoint."
+
+### 15. Use the Undo Feature Aggressively
+
+Claude Code has an undo system — if a change goes wrong, you can roll it back without manually reverting. Use this to make Claude more adventurous with refactors: "Try the more aggressive refactor — we can always undo."
+
+---
+
+## Skills
+
+### 16. Combine Skills for Complex Tasks
+
+Skills stack. Combine them for compound expertise:
+
+```
+With both typescript-pro and react-expert active, refactor this
+data-fetching component to use Server Components and proper TypeScript generics.
+```
+
+Two skills active = TypeScript expert + React expert in one response.
+
+### 17. Trigger Skills with Context, Not Commands
+
+Most skills activate automatically from context. You don't need to type "use typescript-pro skill." Just:
+- Work in a `.tsx` file → `react-expert` activates
+- Ask about Docker → `devops-engineer` activates
+- Mention a bug → `debugging-wizard` activates
+
+### 18. Use Custom Skill Triggers
+
+You can define custom trigger phrases in your CLAUDE.md:
+
+```markdown
+When I say "go full TypeScript", activate typescript-pro and enforce
+strict mode, no `any`, proper generics everywhere.
+```
+
+Now "go full TypeScript" is a power mode command.
+
+### 19. Chain Skills for Code Review + Fix
+
+Review and fix in one prompt:
+
+```
+With code-reviewer active, review this PR and then, for each issue found,
+immediately write the corrected code.
+```
+
+Review mode + fix mode in a single command.
+
+### 20. Create Domain-Specific Skills for Your Team
+
+Teams can create custom skills for their specific stack. A skill file for your team's conventions means every developer gets the same expert context:
+
+```markdown
+# .claude/skills/our-stack.md
+You are an expert in [Company]'s tech stack:
+- Next.js 15 App Router
+- Prisma with PostgreSQL
+- Clerk for auth
+- Vercel for deployment
+Always follow our convention of [...]
+```
+
+---
+
+## Advanced
+
+### 21. Use MCP Servers for External Data
+
+Model Context Protocol (MCP) servers let Claude access external data sources directly. Connect your database, documentation, or internal tools:
+
+```json
+// .claude/mcp.json
+{
+  "servers": {
+    "postgres": {
+      "command": "npx @modelcontextprotocol/server-postgres",
+      "env": { "DATABASE_URL": "${DATABASE_URL}" }
+    }
+  }
+}
+```
+
+Now Claude can query your actual database schema and write accurate queries without you describing the schema manually.
+
+### 22. Build Subagent Workflows for Large Tasks
+
+For tasks too big for one context window, break them into subagent chains:
+
+```
+Task: Migrate the entire codebase from JavaScript to TypeScript.
+Phase 1: Analyze all files and create a migration plan
+Phase 2: (For each file) Convert to TypeScript and add types
+Phase 3: Run the full test suite and fix any type errors
+Phase 4: Update documentation
+```
+
+Each phase is a separate agent call — the output of one feeds into the next.
+
+### 23. Use --continue for Long-Running Tasks
+
+When a task is cut off mid-way (context limit), use `--continue` to resume from exactly where it stopped. Claude maintains state between the interrupted and resumed sessions.
+
+### 24. Pipe External Context into Claude
+
+Shell integration means you can pipe real system data directly:
+
+```bash
+# Review the actual running logs
+docker logs my-app | claude "identify any error patterns in these logs"
+
+# Analyze real database query performance
+psql -c "EXPLAIN ANALYZE SELECT ..." | claude "explain this query plan and suggest optimizations"
+
+# Review PR diffs
+gh pr diff 142 | claude "review this PR for security issues"
+```
+
+Real data + Claude = much better analysis than descriptions.
+
+### 25. Measure and Iterate Your Workflow
+
+Track which prompting patterns give you the best results. Keep a personal `prompts.md` of your best prompts:
+
+```markdown
+# My best prompts
+
+## Code review
+"Review this code as a security engineer who just read the OWASP Top 10.
+Flag every issue in order of severity, with the actual exploitable scenario for critical ones."
+
+## Architecture decision
+"I need to decide between [option A] and [option B].
+Assume I'm building this for 10x scale from today.
+Give me three arguments for each side, then your recommendation."
+
+## Debugging
+"I have this bug: [description]. Here's the code: [code].
+Form three hypotheses about the root cause, ranked by probability.
+Then test each one and tell me what you find."
+```
+
+The prompts that work become reusable tools.
+
+---
+
+## The Compounding Effect
+
+These tips work individually, but they compound. A developer who has set up CLAUDE.md, uses skills, has hooks configured, and knows how to spawn parallel agents isn't just 25 tips better — they're working in a fundamentally different way than someone running single-shot prompts.
+
+The skills that enable many of these patterns are part of the SuperSkills library. 106 skills, every domain, one flat price.
+
+**Ready to become a Claude Code power user?** Get the full library at [/#pricing](/#pricing).

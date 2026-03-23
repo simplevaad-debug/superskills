@@ -1,0 +1,315 @@
+---
+title: "Claude Code for Backend Engineers"
+description: "How backend engineers use Claude Code skills to design APIs, optimize databases, implement authentication, and build microservices."
+date: "2026-02-28"
+author: "SuperSkills"
+tags: ["claude code", "backend", "api", "microservices", "database"]
+category: "Use Case"
+---
+
+Backend engineering is where complexity lives. The frontend can be remade in a weekend. The backend accumulates decisions — schema choices, API contracts, authentication flows, caching strategies — that compound over years and become expensive to change. Getting these decisions right the first time isn't just good practice; it's how systems survive long enough to matter.
+
+Claude Code with backend-specific skills doesn't write backend code that works. It writes backend code that's designed to last: clear contracts, defensive patterns, performance from the start, and the kind of architecture that a team can build on rather than work around.
+
+## Backend Skills in the SuperSkills Collection
+
+**`api-designer`** — REST and GraphQL API design: resource modeling, HTTP semantics, versioning strategies, pagination patterns, error response formats, rate limiting, and the decisions that make APIs a pleasure rather than a puzzle to integrate.
+
+**`database-optimizer`** — Database performance: query analysis, index strategy, schema design, connection pooling, N+1 prevention, query plan interpretation, and the difference between queries that look similar but perform orders of magnitude differently.
+
+**`microservices-architect`** — Distributed systems patterns: service boundaries, inter-service communication, event-driven architecture, saga patterns for distributed transactions, circuit breakers, and the operational concerns that make microservices either a good decision or a disaster.
+
+**`nestjs-expert`** — NestJS depth: decorators, dependency injection, guards, interceptors, pipes, modules, TypeORM integration, and the patterns that make NestJS applications maintainable as they grow.
+
+## Designing APIs That Age Well
+
+The `api-designer` skill changes how Claude approaches endpoint design. Instead of writing routes that match the current requirements, it designs APIs that have room to grow.
+
+### Resource Modeling
+
+Bad API design usually starts with mapping endpoints directly to database tables. The `api-designer` skill models resources around business concepts instead:
+
+```
+# Database-driven (brittle)
+GET  /user_orders_view?user_id=123
+POST /insert_order
+PUT  /update_order_status
+
+# Resource-driven (stable)
+GET  /users/{userId}/orders
+POST /orders
+PATCH /orders/{orderId}/status
+```
+
+The resource-driven approach survives schema refactors because it models the business domain, not the implementation. When you split the `orders` table into `orders` and `order_items`, the API surface doesn't change.
+
+### Error Response Contracts
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Request validation failed",
+    "details": [
+      {
+        "field": "email",
+        "code": "INVALID_FORMAT",
+        "message": "Must be a valid email address"
+      },
+      {
+        "field": "birthDate",
+        "code": "OUT_OF_RANGE",
+        "message": "Must be at least 13 years ago"
+      }
+    ],
+    "requestId": "req_01HX4K2M3N"
+  }
+}
+```
+
+The skill knows: error responses should have machine-readable `code` fields (not just human-readable messages), `details` for validation errors should be field-level and actionable, `requestId` enables log correlation for debugging, and consistency matters more than perfection — every endpoint should use the same error format.
+
+### Pagination Done Right
+
+```typescript
+// Offset pagination — simple but doesn't scale
+GET /orders?page=3&limit=25
+
+// Cursor pagination — scales to millions of rows
+GET /orders?after=01HX4K2M3N&limit=25
+
+// Response with next cursor
+{
+  "data": [...],
+  "pagination": {
+    "cursor": "01HX4K2M3N7P",
+    "hasMore": true,
+    "total": null  // cursor pagination can't know total cheaply
+  }
+}
+```
+
+The `api-designer` skill explains trade-offs: offset pagination is simple and allows jumping to arbitrary pages but breaks when rows are inserted mid-read; cursor pagination is stable and scales but loses the ability to jump to page 50.
+
+## Database Optimization
+
+The `database-optimizer` skill is one of the highest-leverage skills in the collection. Bad queries are expensive, hard to find, and rarely obvious from the code.
+
+### Index Strategy
+
+```sql
+-- The slow query (full table scan on 10M rows)
+SELECT * FROM orders
+WHERE user_id = 123
+  AND status = 'pending'
+  AND created_at > NOW() - INTERVAL '30 days'
+ORDER BY created_at DESC
+LIMIT 20;
+
+-- Query plan shows: Seq Scan, cost=0.00..450000.00
+
+-- After adding composite index
+CREATE INDEX idx_orders_user_status_date
+ON orders (user_id, status, created_at DESC)
+WHERE status IN ('pending', 'processing');  -- partial index
+
+-- Query plan shows: Index Scan, cost=0.00..8.50
+```
+
+The skill knows index column ordering: equality conditions first (`user_id`, `status`), then range/sort columns (`created_at`). It also knows partial indexes — the `WHERE status IN (...)` clause makes the index smaller and faster because it only indexes rows matching that condition.
+
+### The N+1 Problem at the ORM Layer
+
+```typescript
+// Generates N+1 queries (1 for orders, N for users)
+const orders = await orderRepository.find({ status: 'pending' })
+for (const order of orders) {
+  console.log(order.user.email)  // lazy loads each user
+}
+
+// With database-optimizer: eager loading in one query
+const orders = await orderRepository.find({
+  where: { status: 'pending' },
+  relations: ['user', 'items', 'items.product'],
+  select: {
+    id: true,
+    total: true,
+    createdAt: true,
+    user: { email: true, name: true },
+  }
+})
+```
+
+The skill also recognizes when `relations` creates a cartesian product problem (loading many-to-many through eager loading on large datasets) and suggests DataLoader or batched fetching instead.
+
+## Authentication Flows
+
+Authentication is where security mistakes live. The `api-designer` skill implements auth correctly by default.
+
+### JWT with Refresh Token Rotation
+
+```typescript
+// Access token: short-lived (15 minutes)
+// Refresh token: long-lived (7 days), stored in httpOnly cookie
+
+async function refreshTokens(refreshToken: string): Promise<TokenPair> {
+  const payload = verifyRefreshToken(refreshToken)
+
+  // Rotation: invalidate old refresh token, issue new one
+  const stored = await refreshTokenRepository.findOne({
+    token: refreshToken,
+    userId: payload.sub,
+    used: false,
+  })
+
+  if (!stored) {
+    // Token reuse detected — possible theft
+    await refreshTokenRepository.invalidateAll(payload.sub)
+    throw new UnauthorizedException('Refresh token reuse detected')
+  }
+
+  await refreshTokenRepository.markUsed(refreshToken)
+
+  const user = await userRepository.findById(payload.sub)
+  return issueTokenPair(user)
+}
+```
+
+The skill implements refresh token rotation (each refresh issues a new refresh token, invalidating the old one), detects potential token theft (if an already-used token is presented again), and stores refresh tokens in httpOnly cookies (not localStorage, which is XSS-accessible).
+
+## NestJS Architecture
+
+The `nestjs-expert` skill produces NestJS code that takes full advantage of the framework's dependency injection system.
+
+### Guards and Interceptors
+
+```typescript
+// Guard: handles authorization
+@Injectable()
+export class ResourceOwnerGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest()
+    const { user, params } = request
+
+    const resourceType = this.reflector.get<string>(
+      'resourceType',
+      context.getHandler()
+    )
+
+    if (resourceType === 'order') {
+      const order = await this.orderService.findById(params.id)
+      return order.userId === user.id || user.role === 'admin'
+    }
+
+    return false
+  }
+}
+
+// Interceptor: transforms response shape
+@Injectable()
+export class WrapResponseInterceptor<T>
+  implements NestInterceptor<T, ApiResponse<T>> {
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler
+  ): Observable<ApiResponse<T>> {
+    return next.handle().pipe(
+      map(data => ({
+        data,
+        meta: {
+          timestamp: new Date().toISOString(),
+          requestId: context.switchToHttp().getRequest().id,
+        },
+      }))
+    )
+  }
+}
+```
+
+The skill structures guards for authorization logic (separate from authentication, which belongs in a JWT strategy), uses interceptors for cross-cutting concerns like response wrapping, and leverages `Reflector` for metadata-driven authorization.
+
+## Microservices Patterns
+
+The `microservices-architect` skill applies distributed systems patterns that prevent the common failures that make microservices infamous.
+
+### Circuit Breaker Pattern
+
+```typescript
+import { CircuitBreaker } from 'opossum'
+
+const inventoryServiceCall = async (productId: string) =>
+  fetch(`${INVENTORY_URL}/products/${productId}/stock`)
+
+const breaker = new CircuitBreaker(inventoryServiceCall, {
+  timeout: 3000,          // 3 second timeout
+  errorThresholdPercentage: 50,  // open after 50% failures
+  resetTimeout: 30000,    // retry after 30 seconds
+})
+
+breaker.fallback(() => ({
+  inStock: true,  // optimistic fallback — don't block purchase
+  quantity: null, // null signals "unknown" to the consumer
+}))
+
+// Usage
+async function getProductDetails(productId: string) {
+  const stock = await breaker.fire(productId)
+  return { productId, stock }
+}
+```
+
+The skill knows: timeouts prevent cascading failures, error thresholds open the breaker before total failure, reset timeouts allow recovery without manual intervention, and fallbacks maintain degraded functionality rather than complete failure.
+
+### Event-Driven Communication
+
+```typescript
+// Publishing events for loose coupling
+class OrderService {
+  async createOrder(dto: CreateOrderDto): Promise<Order> {
+    const order = await this.orderRepository.save(dto)
+
+    // Publish event — other services react independently
+    await this.eventBus.publish(new OrderCreatedEvent({
+      orderId: order.id,
+      userId: order.userId,
+      items: order.items,
+      total: order.total,
+      timestamp: new Date(),
+    }))
+
+    return order
+  }
+}
+
+// Consumers handle their own concerns
+class InventoryService {
+  @EventsHandler(OrderCreatedEvent)
+  async onOrderCreated(event: OrderCreatedEvent): Promise<void> {
+    await this.reserveInventory(event.items)
+  }
+}
+
+class NotificationService {
+  @EventsHandler(OrderCreatedEvent)
+  async onOrderCreated(event: OrderCreatedEvent): Promise<void> {
+    await this.sendConfirmationEmail(event.userId, event.orderId)
+  }
+}
+```
+
+Events decouple services: `OrderService` doesn't know about inventory or notifications. New consumers can be added without modifying the publisher. This is the pattern that makes microservices actually scalable.
+
+## Getting Started
+
+1. Install SuperSkills to `~/.claude/skills/`
+2. Open your backend project in Claude Code
+3. Skills activate based on file context — `database-optimizer` when SQL or ORM code is detected, `api-designer` for route definitions
+4. Start building: "Design the API for a multi-tenant SaaS product," "Add caching to this endpoint," "Implement JWT authentication with refresh tokens"
+
+The first time Claude designs an API with proper versioning, pagination, error contracts, and rate limiting from a single description — that's when backend work starts feeling like it's moving at a different speed.
+
+---
+
+*Get all 106 SuperSkills including the complete backend engineering suite — [download for $50](/#pricing) and build better backends starting today.*

@@ -1,0 +1,245 @@
+---
+title: "كيفية تثبيت Claude Code"
+description: "دليل شامل خطوة بخطوة لتثبيت Claude Code على macOS وLinux وWindows — من المتطلبات الأساسية إلى أول جلسة برمجة بمساعدة الذكاء الاصطناعي."
+date: "2026-03-20"
+author: "SuperSkills"
+tags: ["claude code", "تثبيت", "إعداد", "دليل"]
+category: "دليل"
+---
+
+Claude Code هو واجهة سطر الأوامر الرسمية من Anthropic للتطوير بمساعدة الذكاء الاصطناعي. على عكس الأدوات المستندة إلى المتصفح، يعمل مباشرةً في الطرفية جنباً إلى جنب مع سير عملك الحالي — محررك، وGit، والـ shell. يرشدك هذا الدليل خلال كل خطوة من الصفر حتى أول جلسة برمجة بمساعدة الذكاء الاصطناعي.
+
+## المتطلبات الأساسية
+
+قبل تثبيت Claude Code، تأكد من توفر أمرين لديك.
+
+### 1. Node.js 18 أو أحدث
+
+يتطلب Claude Code إصدار Node.js 18 أو أحدث. تحقق مما لديك:
+
+```bash
+node --version
+```
+
+إذا رأيت `v18.x.x` أو أعلى، فأنت بخير. إذا لم يكن كذلك، ثبّت Node.js من [nodejs.org](https://nodejs.org) أو عبر مدير الإصدارات:
+
+```bash
+# باستخدام nvm (موصى به)
+nvm install 20
+nvm use 20
+
+# على macOS مع Homebrew
+brew install node
+```
+
+### 2. مفتاح API من Anthropic
+
+يستدعي Claude Code واجهة برمجة تطبيقات Anthropic، لذا تحتاج إلى حساب ومفتاح API.
+
+1. اذهب إلى [console.anthropic.com](https://console.anthropic.com)
+2. سجّل أو سجّل الدخول
+3. انتقل إلى **API Keys** ← **Create Key**
+4. انسخ المفتاح — ستحتاجه أثناء الإعداد
+
+احتفظ بهذا المفتاح سرياً. لا تلتزم به أبداً في مستودع.
+
+---
+
+## التثبيت
+
+### الخيار أ: npm (جميع المنصات)
+
+طريقة التثبيت القياسية تعمل على macOS وLinux وWindows:
+
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+تحقق من نجاح التثبيت:
+
+```bash
+claude --version
+```
+
+يجب أن ترى شيئاً مثل `claude-code/1.x.x`.
+
+### الخيار ب: Homebrew (macOS / Linux)
+
+إذا كنت تفضل Homebrew:
+
+```bash
+brew install anthropic/tap/claude-code
+```
+
+### الخيار ج: Windows (عبر npm في PowerShell أو WSL)
+
+على Windows، استخدم إما PowerShell مع تثبيت Node.js، أو Windows Subsystem for Linux (WSL). يُوصى بـ WSL للحصول على تجربة أكثر سلاسة:
+
+```powershell
+# في PowerShell
+npm install -g @anthropic-ai/claude-code
+```
+
+```bash
+# في WSL (Ubuntu)
+npm install -g @anthropic-ai/claude-code
+```
+
+---
+
+## التشغيل الأول والمصادقة
+
+بمجرد التثبيت، شغّل Claude Code من أي مجلد:
+
+```bash
+claude
+```
+
+عند التشغيل الأول، سيطلب منك Claude Code مفتاح API الخاص بك:
+
+```
+Welcome to Claude Code!
+Please enter your Anthropic API key: sk-ant-...
+```
+
+أدخل المفتاح الذي أنشأته سابقاً. يقوم Claude Code بتخزينه بأمان في مخزن بيانات الاعتماد في نظامك — لن يُسأل عنه مرة أخرى.
+
+بدلاً من ذلك، عيّنه كمتغير بيئة قبل التشغيل:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-مفتاحك-هنا
+claude
+```
+
+لجعل هذا دائماً، أضف سطر التصدير إلى ملف تعريف الـ shell الخاص بك (`~/.zshrc` أو `~/.bashrc` أو ما يعادله).
+
+---
+
+## الإعداد الأساسي
+
+يعمل Claude Code خارج الصندوق بإعدادات افتراضية معقولة، لكن تستحق بعض الإعدادات التهيئة المبكرة.
+
+### إعداد مستوى المشروع: `CLAUDE.md`
+
+في أي مشروع، أنشئ ملف `CLAUDE.md` في الجذر. يقرأ Claude هذا الملف تلقائياً عندما تبدأ جلسة في ذلك المجلد:
+
+```markdown
+# مشروعي
+
+## المكدس التقني
+- Next.js 14، TypeScript، Tailwind CSS
+- Supabase لقاعدة البيانات والمصادقة
+- النشر على Vercel
+
+## الاتفاقيات
+- استخدم named exports، وليس default exports
+- فضّل `const` على `let`
+- جميع المكونات في `src/components/`
+```
+
+يخبر هذا الملف Claude عن مشروعك دون الحاجة إلى شرحه في كل جلسة.
+
+### الإعداد العام
+
+يقرأ Claude Code أيضاً `~/.claude/CLAUDE.md` للتفضيلات العامة التي تنطبق على كل مشروع:
+
+```bash
+mkdir -p ~/.claude
+touch ~/.claude/CLAUDE.md
+```
+
+أضف هنا قواعد عامة — أسلوب الكود المفضل لديك، والأشياء التي يجب على Claude فعلها دائماً أو عدم فعلها أبداً، وتفضيلات تنسيق الإخراج.
+
+### مجلد Skills
+
+مجلد `~/.claude/skills/` هو المكان الذي تعيش فيه مهارات Claude Code. المهارات هي ملفات markdown تمنح Claude خبرة خاصة بالمجال — المزيد عن هذا بعد قليل:
+
+```bash
+mkdir -p ~/.claude/skills
+```
+
+---
+
+## التحقق من عمل كل شيء
+
+لنجرِ فحصاً سريعاً للتأكد من سلامة العمل. انتقل إلى أي مجلد مشروع وشغّل:
+
+```bash
+cd ~/مشروعك
+claude
+```
+
+عند موجّه `>` اكتب:
+
+```
+What files are in this project?
+```
+
+سيفحص Claude المجلد ويعطيك ملخصاً. إذا استجاب بذكاء حول ملفاتك، فكل شيء يعمل.
+
+جرّب مهمة حقيقية:
+
+```
+Review the main entry point and suggest any improvements.
+```
+
+سيقرأ Claude الملف، يحلله، ويرد بمقترحات ملموسة. هذا كل شيء — أنت تستخدم التطوير بمساعدة الذكاء الاصطناعي.
+
+---
+
+## تثبيت Skills (اختياري لكن موصى به)
+
+تُوسّع مهارات Claude Code ما يعرفه Claude. مهارة `react-expert` تجعل Claude يتبع أفضل ممارسات React 18 تلقائياً. مهارة `typescript-pro` تفرض أنماط TypeScript الصارمة. تعيش المهارات في `~/.claude/skills/` كملفات markdown.
+
+لتثبيت حزمة مهارات:
+
+```bash
+# نزّل واستخرج ملف ZIP للمهارات
+unzip superskills.zip -d ~/.claude/skills/
+
+# تحقق من وجود المهارات في مكانها
+ls ~/.claude/skills/
+```
+
+أعد تشغيل Claude Code بعد إضافة مهارات جديدة — يتم تحميلها عند بدء التشغيل.
+
+---
+
+## المشاكل الشائعة
+
+**"command not found: claude"**
+مجلد npm global bin ليس في PATH الخاص بك. شغّل `npm bin -g` للعثور عليه وأضفه إلى `~/.zshrc` أو `~/.bashrc`.
+
+**"API key invalid"**
+تحقق مرة أخرى من المفتاح في [console.anthropic.com](https://console.anthropic.com). تأكد من نسخ المفتاح الكامل بما في ذلك البادئة `sk-ant-`.
+
+**استجابة أولى بطيئة**
+قد تستغرق الرسالة الأولى في جلسة ما عدة ثوانٍ بينما يحمّل Claude سياق مشروعك. الرسائل اللاحقة أسرع.
+
+**أخطاء الأذونات على macOS**
+إذا فشل تثبيت npm مع أخطاء أذونات، تجنب `sudo`. بدلاً من ذلك، هيّئ npm لاستخدام مجلد قابل للكتابة من قِبل المستخدم:
+
+```bash
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc
+source ~/.zshrc
+npm install -g @anthropic-ai/claude-code
+```
+
+---
+
+## ما التالي؟
+
+الآن بعد أن يعمل Claude Code، إليك كيفية الاستفادة القصوى منه:
+
+- **أضف `CLAUDE.md`** لكل مشروع — السياق هو كل شيء
+- **ثبّت المهارات** لمنح Claude خبرة خاصة بالمجال
+- **استخدمه لمهام حقيقية** — مراجعات الكود، وإعادة البناء، والتصحيح، وكتابة الاختبارات
+- **استكشف علامة `--print`** للاستخدام غير التفاعلي في النصوص البرمجية
+
+الفرق بين إعداد Claude Code الأساسي والرائع يكمن تقريباً في السياق بالكامل: ما تخبره لـ Claude، وأي المهارات ثبّتها.
+
+---
+
+*مستعد للارتقاء بمستواك؟ [احصل على جميع 106 مهارات SuperSkills بـ$50](/#pricing) — ملف ZIP واحد، ضعه في `~/.claude/skills/`، وسيصبح Claude Code خبيراً في 15 مجالاً.*

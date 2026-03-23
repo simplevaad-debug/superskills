@@ -116,7 +116,8 @@ export async function captureOrder(orderId: string): Promise<{
   const data = await res.json();
 
   if (!res.ok) {
-    return { status: data.status || "FAILED" };
+    console.error("PayPal capture failed:", res.status, data.name);
+    return { status: "FAILED" };
   }
 
   const capture = data.purchase_units?.[0]?.payments?.captures?.[0];

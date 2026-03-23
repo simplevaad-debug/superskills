@@ -1,0 +1,279 @@
+---
+title: "Claude Code למהנדסי DevOps"
+description: "איך מהנדסי DevOps משתמשים בסקילי Claude Code לאוטומציה של תשתית, כתיבת Dockerfiles טובים יותר, וניהול Kubernetes כמו מקצוענים."
+date: "2026-03-12"
+author: "SuperSkills"
+tags: ["claude code", "devops", "docker", "kubernetes", "תשתית"]
+category: "שימוש"
+---
+
+עבודת DevOps דורשת. אתם מחליפים הקשר בין Dockerfiles, מניפסטי Kubernetes, מודולי Terraform, pipelines של CI/CD וקונפיגורציות מוניטורינג — לרוב בין מספר פרויקטים עם stacks טכנולוגיים שונים. כל טעות בקוד תשתית עולה זמן אמיתי ועלולה להפיל ייצור.
+
+Claude Code, כשהוא מצויד בסקילים הנכונים, הופך לאיש מקצוע בתשתיות שמכיר את ה-stack שלכם, עוקב אחר best practices, ולעולם לא שוכח להוסיף health checks.
+
+## סקילי DevOps באוסף SuperSkills
+
+ארבעת הסקילים הבאים בנויים במיוחד לעבודת תשתיות:
+
+**`devops-engineer`** — הסקיל הגנרליסט. מכסה containerization, orchestration, CI/CD ויסודות תשתית. מיישם ברירות מחדל הגיוניות על פני כל כלי ה-DevOps.
+
+**`kubernetes-specialist`** — מומחיות K8s עמוקה: הגבלות משאבים נכונות, readiness/liveness probes, RBAC, network policies, מבנה Helm chart ומניפסטים מוכנים לייצור.
+
+**`terraform-engineer`** — Best practices של Infrastructure as Code: מבנה מודולים, הגדרת remote state, ניהול משתנים, ניהול גרסאות provider, ואסטרטגיות workspace.
+
+**`monitoring-expert`** — פוקוס על observability: מטריקות Prometheus, דשבורדים של Grafana, חוקי התרעות, דפוסי log aggregation והגדרות SLI/SLO.
+
+הסקילים הללו לא עובדים בבידוד — הם מצטברים. טעינת `devops-engineer` ו-`kubernetes-specialist` יחד נותנת ל-Claude ידע K8s עמוק המבוסס על עקרונות DevOps רחבים יותר.
+
+## תרחיש אמיתי: כתיבת Dockerfiles
+
+### ללא סקיל
+
+בקשו מ-Claude "כתוב Dockerfile לאפליקציית Node.js" ללא סקיל, ותקבלו כנראה משהו פונקציונלי אבל תמים:
+
+```dockerfile
+FROM node:18
+WORKDIR /app
+COPY . .
+RUN npm install
+EXPOSE 3000
+CMD ["node", "index.js"]
+```
+
+זה עובד בפיתוח. בייצור, זו בעיה: הוא רץ כ-root, כולל dev dependencies, אין health check, חושף חבילות מיותרות, ויוצר תמונה גדולה מתיקיית המקור המלאה.
+
+### עם סקיל `devops-engineer`
+
+אותה בקשה עם הסקיל פעיל מייצרת Dockerfile מרובה-שלבים ומוקשה:
+
+```dockerfile
+# Build stage
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Runtime stage
+FROM node:20-alpine AS runtime
+RUN addgroup -g 1001 -S nodejs && adduser -S nodeuser -u 1001
+WORKDIR /app
+COPY --from=builder --chown=nodeuser:nodejs /app/node_modules ./node_modules
+COPY --chown=nodeuser:nodejs . .
+USER nodeuser
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget -qO- http://localhost:3000/health || exit 1
+CMD ["node", "--max-old-space-size=512", "index.js"]
+```
+
+הסקיל יודע: להשתמש ב-Alpine לתמונות קטנות יותר, multi-stage builds להוצאת build artifacts, ליצור משתמש שאינו-root, לקבוע בעלות נכונה, להוסיף health check, ולהעביר הגבלות זיכרון ל-Node.
+
+זו ההבדל בין Dockerfile שעובד לבין כזה שמוכן לייצור.
+
+## תרחיש אמיתי: מניפסטי Kubernetes
+
+### ללא סקיל
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-app
+        image: my-app:latest
+        ports:
+        - containerPort: 3000
+```
+
+חסר: הגבלות משאבים (כך שpod אחד יכול להרעיב את ה-node), liveness/readiness probes (כך ש-Kubernetes לא יכול לדעת מתי האפליקציה בריאה), pod disruption budgets, security context ותיוג תמונות נכון.
+
+### עם סקיל `kubernetes-specialist`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  labels:
+    app: my-app
+    version: "1.2.3"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: my-app
+        version: "1.2.3"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: my-app
+        image: registry.example.com/my-app:1.2.3
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: my-app-pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: my-app
+```
+
+הסקיל מוסיף כל מה שהמניפסט הבסיסי פספס — ויודע מדוע כל שדה חשוב.
+
+## תרחיש אמיתי: Pipelines של CI/CD
+
+מהנדסי DevOps מבלים זמן משמעותי בכתיבה ודיבוג של קונפיגורציות pipeline. עם סקיל `devops-engineer`, Claude מבין best practices של pipeline בין GitHub Actions, GitLab CI ומערכות אחרות.
+
+בקשו: "כתוב GitHub Actions workflow לאפליקציית Node.js עם בדיקות, lint, Docker build ו-deployment ל-Kubernetes."
+
+הסקיל מבטיח ש-Claude יעשה:
+- Cache dependencies נכון (חיסכון בדקות לכל ריצה)
+- הרצת lint ובדיקות במקביל היכן שניתן
+- שימוש ב-matrix builds לבדיקת מספר גרסאות
+- בניית ודחיפת תמונות Docker עם תיוג נכון (branch, commit SHA, semver)
+- שימוש ב-OIDC authentication במקום credentials ארוכי חיים
+- deploy עם אימות rollout ו-rollback אוטומטי בכשל
+- אחסון secrets נכון דרך GitHub secrets, לעולם לא hardcoded
+
+```yaml
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint & npm run test -- --coverage
+        # הרצה מקבילה
+
+  build:
+    needs: quality
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: Build and push
+        run: |
+          IMAGE_TAG="${{ github.sha }}"
+          docker build -t $ECR_REGISTRY/$IMAGE_NAME:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+```
+
+## תרחיש אמיתי: מודולי Terraform
+
+Infrastructure as Code נהנה עצומות מתבניות עקביות. סקיל `terraform-engineer` מבטיח ש-Claude כותב Terraform שעוקב אחר best practices של מודולים:
+
+- משתנים עם types נכונים, תיאורים וחוקי validation
+- outputs שחושפים מה שמודולים downstream צריכים
+- Remote state עם נעילה דרך S3 + DynamoDB או Terraform Cloud
+- Pin גרסאות provider למניעת שדרוגים מפתיעים
+- תקני תיוג מיושמים באופן עקבי על פני כל המשאבים
+- Data sources להפניה לתשתית קיימת, לא IDs hardcoded
+
+מודול מסד נתונים שנכתב ללא הסקיל עלול לkodad את מחלקת ה-instance ולדלג על הצפנה. עם הסקיל, Claude מוסיף אוטומטית `encrypted = true`, משתמש במשתנה למחלקת ה-instance עם ברירת מחדל הגיונית ורשימת ערכים מותרים, מוסיף הגדרת parameter group, מאפשר גיבויים אוטומטיים עם תקופת שמירה הניתנת להגדרה, ומתייג הכל להקצאת עלויות.
+
+## תרחיש אמיתי: Monitoring ו-Observability
+
+סקיל `monitoring-expert` משנה את האופן שבו Claude מטפל בדרישות observability. תנו לו שירות ובקשו הגדרת מוניטורינג, ותקבלו:
+
+- **מטריקות Prometheus** — שיטת RED (Rate, Errors, Duration) עם instrumentation נכון באפליקציה
+- **דשבורד Grafana** כ-JSON עם הפאנלים המרכזיים: שיעור בקשות, שיעור שגיאות, percentiles latency (p50/p95/p99), ושימוש במשאבים
+- **חוקי התרעות** — הגדרות Prometheus alerts מוכנות ל-PagerDuty עם labels severity נכונים, קישורי runbook וספי ריאליסטיים מבוססי SLOs
+- **דפוסי לוגים** — רישום JSON מובנה עם trace IDs לקורלציה
+
+ללא הסקיל, Claude נותן לכם עצות מוניטורינג גנריות. עם הסקיל, אתם מקבלים קונפיגורציית observability ברמת ייצור.
+
+## האפקט המצטבר
+
+הכוח האמיתי אינו בסקיל בודד כלשהו — אלא בטעינת מספר סקילים למשימות מורכבות.
+
+session DevOps טיפוסי עשוי לכלול `devops-engineer`, `kubernetes-specialist` ו-`terraform-engineer` כולם פעילים. כשאתם מבקשים מ-Claude "הגדר microservice חדש עם deployment Kubernetes, תשתית Terraform ומוניטורינג," הוא שואב מכל שלושת גופי הסקילים בו זמנית.
+
+התוצאה היא קוד תשתית קוהרנטי שעוקב אחר תבניות עקביות על פני כל השכבות — משהו שדורש בדרך כלל מהנדס בכיר שמכיר את שלושת התחומים היטב.
+
+## להתחיל עם סקילי DevOps
+
+1. התקינו את אוסף SuperSkills ב-`~/.claude/skills/`
+2. הפעילו Claude Code במאגר התשתיות שלכם
+3. סקילים מופעלים אוטומטית בהתאם להקשר ולסוגי הקבצים שלכם
+4. בקשו מה שאתם צריכים: "כתוב Dockerfile," "צור K8s deployment," "כתוב מודול Terraform ל-RDS"
+5. סקרו את הפלט — הוא יהיה מוכן לייצור מהתחלה
+
+הפעם הראשונה שבה Claude כותב לכם Dockerfile מוקשה ומרובה-שלבים עם משתמש שאינו-root וhealth checks מבלי שביקשתם, תבינו למה הסקילים האלה חשובים.
+
+---
+
+*קבלו את 106 הסקילים של SuperSkills כולל חבילת DevOps המלאה — [הורידו ב-$50](/pricing) ופרסו תשתית טובה יותר החל מהיום.*

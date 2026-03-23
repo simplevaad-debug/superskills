@@ -6,31 +6,38 @@ import { savePurchase, isOrderAlreadyUsed } from "@/lib/supabase";
 const EXPECTED_AMOUNT = "50.00";
 const EXPECTED_CURRENCY = "USD";
 
+function redirect(url: string, req: NextRequest) {
+  const res = NextResponse.redirect(new URL(url, req.url));
+  res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  return res;
+}
+
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
+  const payerId = req.nextUrl.searchParams.get("PayerID");
 
-  if (!token) {
-    return NextResponse.redirect(new URL("/#pricing", req.url));
+  if (!token || !payerId) {
+    return redirect("/#pricing", req);
   }
 
   try {
-    // Prevent replay attack: reject if order was already processed
+    // Atomic replay guard
     const alreadyUsed = await isOrderAlreadyUsed(token);
     if (alreadyUsed) {
-      return NextResponse.redirect(new URL("/#pricing", req.url));
+      return redirect("/#pricing", req);
     }
 
     const orderValid = await verifyOrderAmount(token, EXPECTED_AMOUNT, EXPECTED_CURRENCY);
     if (!orderValid) {
       console.error(`Order ${token} failed amount verification`);
-      return NextResponse.redirect(new URL("/#pricing", req.url));
+      return redirect("/#pricing", req);
     }
 
     const result = await captureOrder(token);
 
     if (result.status === "COMPLETED") {
-      // Save purchase to DB
-      await savePurchase({
+      // savePurchase throws on failure — no silent swallowing
+      const saved = await savePurchase({
         paypal_order_id: token,
         payer_email: result.payer_email,
         payer_name: result.payer_name,
@@ -39,15 +46,18 @@ export async function GET(req: NextRequest) {
         status: "COMPLETED",
       });
 
+      if (!saved) {
+        // Duplicate order — already processed
+        return redirect("/#pricing", req);
+      }
+
       const downloadToken = generateDownloadToken(token);
-      return NextResponse.redirect(
-        new URL(`/success?token=${downloadToken}`, req.url)
-      );
+      return redirect(`/success?token=${downloadToken}`, req);
     }
 
-    return NextResponse.redirect(new URL("/#pricing", req.url));
+    return redirect("/#pricing", req);
   } catch (error) {
     console.error("PayPal complete error:", error);
-    return NextResponse.redirect(new URL("/#pricing", req.url));
+    return redirect("/#pricing", req);
   }
 }

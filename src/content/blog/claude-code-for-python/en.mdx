@@ -1,0 +1,297 @@
+---
+title: "Claude Code for Python Developers"
+description: "How Python developers use Claude Code skills to write cleaner code, build FastAPI services, manage data pipelines, and automate testing."
+date: "2026-03-02"
+author: "SuperSkills"
+tags: ["claude code", "python", "fastapi", "django", "data science"]
+category: "Use Case"
+---
+
+Python is everywhere. It powers Django apps, FastAPI microservices, data pipelines, machine learning models, automation scripts, and CLI tools. The language is versatile — but that same versatility means it's easy to write Python that technically works but fails at scale, is hard to test, or breaks when someone else touches it.
+
+Claude Code with Python-specific skills doesn't just write Python. It writes Python the way a senior Python engineer would: with type hints, proper error handling, idiomatic patterns, and the architectural decisions that age well.
+
+## Python Skills in the SuperSkills Collection
+
+These are the core Python skills:
+
+**`python-pro`** — The foundation. Covers idiomatic Python: list comprehensions vs generator expressions, context managers, dataclasses, `__slots__`, proper exception hierarchies, and the patterns that make Python code Pythonic rather than just functional.
+
+**`fastapi-expert`** — FastAPI from routing to deployment: dependency injection, Pydantic models, async handlers, background tasks, middleware, OAuth2 flows, and OpenAPI documentation. Knows when to use `async def` and when regular `def` is actually faster.
+
+**`django-expert`** — Django depth: ORM optimization, custom managers, signals, middleware, the admin interface, class-based vs function-based views, Django REST Framework, and the testing patterns that actually work with Django's test runner.
+
+**`pytest-master`** — Testing discipline: fixtures, parametrize, mocking with `unittest.mock` and `pytest-mock`, test organization, coverage configuration, and the patterns that make test suites fast and maintainable.
+
+## Type Hints That Actually Help
+
+Python's type system is optional, which means most projects either ignore it entirely or use it inconsistently. The `python-pro` skill makes Claude's type annotations useful, not decorative.
+
+### Before: Vague Signatures
+
+```python
+def process_orders(orders, config=None):
+    results = []
+    for order in orders:
+        if validate(order, config):
+            results.append(transform(order))
+    return results
+```
+
+This compiles, runs, and does something. But what? What's `orders`? What does it return? What happens with `config=None`?
+
+### After: Self-Documenting Types
+
+```python
+from typing import Sequence
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class ProcessingConfig:
+    validate_stock: bool = True
+    apply_discounts: bool = True
+    max_retries: int = 3
+
+def process_orders(
+    orders: Sequence[Order],
+    config: ProcessingConfig | None = None,
+) -> list[ProcessedOrder]:
+    active_config = config or ProcessingConfig()
+    return [
+        transform(order, active_config)
+        for order in orders
+        if validate(order, active_config)
+    ]
+```
+
+The skill reaches for `dataclass(frozen=True)` for config objects (immutable, hashable, comparable), uses `Sequence` instead of `list` for the input (accepts any iterable), and returns a concrete `list` because the caller expects a list. These distinctions matter in real codebases.
+
+## FastAPI Services That Scale
+
+The `fastapi-expert` skill changes how Claude structures FastAPI applications. Instead of flat files with route functions, you get a proper application structure.
+
+### Dependency Injection for Clean Services
+
+```python
+from fastapi import FastAPI, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Annotated
+
+app = FastAPI()
+
+# Reusable dependency — clean and testable
+async def get_db() -> AsyncSession:
+    async with SessionLocal() as session:
+        yield session
+
+DBSession = Annotated[AsyncSession, Depends(get_db)]
+
+@app.get("/users/{user_id}", response_model=UserResponse)
+async def get_user(user_id: int, db: DBSession):
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {user_id} not found"
+        )
+    return user
+```
+
+The skill knows: use `Annotated` for dependency types (FastAPI 0.95+ pattern), `status` constants instead of magic numbers, async session management with proper context managers, and `response_model` for automatic serialization and OpenAPI docs.
+
+### Pydantic Models Done Right
+
+```python
+from pydantic import BaseModel, EmailStr, field_validator, model_validator
+from datetime import datetime
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    username: str
+    password: str
+    birth_year: int
+
+    @field_validator("username")
+    @classmethod
+    def username_valid(cls, v: str) -> str:
+        if not v.replace("_", "").isalnum():
+            raise ValueError("Username must be alphanumeric (underscores allowed)")
+        if len(v) < 3:
+            raise ValueError("Username must be at least 3 characters")
+        return v.lower()
+
+    @model_validator(mode="after")
+    def check_age(self) -> "UserCreate":
+        current_year = datetime.now().year
+        if current_year - self.birth_year < 13:
+            raise ValueError("Must be at least 13 years old")
+        return self
+```
+
+The skill uses `field_validator` and `model_validator` (Pydantic v2 patterns), `EmailStr` for email validation, and demonstrates both field-level and model-level validation — patterns most developers copy from documentation but rarely get right on the first try.
+
+## Data Science Workflows
+
+Python data science code tends to be exploratory notebooks turned into production scripts — with all the problems that entails. The `python-pro` skill helps Claude write data code that's actually maintainable.
+
+### Pipeline Pattern Over Sequential Scripts
+
+```python
+from dataclasses import dataclass
+from typing import Callable
+import pandas as pd
+
+@dataclass
+class Pipeline:
+    steps: list[tuple[str, Callable[[pd.DataFrame], pd.DataFrame]]]
+
+    def run(self, df: pd.DataFrame) -> pd.DataFrame:
+        for name, step in self.steps:
+            df = step(df)
+            assert not df.empty, f"Pipeline step '{name}' produced empty DataFrame"
+        return df
+
+def remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:
+    return df.drop_duplicates(subset=["user_id", "event_date"])
+
+def fill_missing_values(df: pd.DataFrame) -> pd.DataFrame:
+    return df.assign(
+        revenue=df["revenue"].fillna(0),
+        country=df["country"].fillna("unknown"),
+    )
+
+def add_derived_features(df: pd.DataFrame) -> pd.DataFrame:
+    return df.assign(
+        revenue_per_event=df["revenue"] / df["event_count"].clip(lower=1),
+        is_high_value=df["revenue"] > df["revenue"].quantile(0.9),
+    )
+
+pipeline = Pipeline(steps=[
+    ("remove_duplicates", remove_duplicates),
+    ("fill_missing", fill_missing_values),
+    ("feature_engineering", add_derived_features),
+])
+```
+
+Each step is a pure function (easy to test), named steps aid debugging, the assertion catches empty DataFrames before they cause silent failures downstream.
+
+## Async Patterns
+
+The `fastapi-expert` skill understands the subtleties of async Python that trip up most developers.
+
+```python
+import asyncio
+import httpx
+
+# Wrong: sequential async calls (defeats the purpose)
+async def fetch_user_data_slow(user_id: int) -> dict:
+    profile = await fetch_profile(user_id)
+    orders = await fetch_orders(user_id)
+    preferences = await fetch_preferences(user_id)
+    return {"profile": profile, "orders": orders, "preferences": preferences}
+
+# Right: concurrent async calls with asyncio.gather
+async def fetch_user_data_fast(user_id: int) -> dict:
+    profile, orders, preferences = await asyncio.gather(
+        fetch_profile(user_id),
+        fetch_orders(user_id),
+        fetch_preferences(user_id),
+    )
+    return {"profile": profile, "orders": orders, "preferences": preferences}
+
+# Right: concurrent HTTP requests with connection pooling
+async def bulk_fetch_prices(product_ids: list[int]) -> list[dict]:
+    async with httpx.AsyncClient() as client:
+        tasks = [
+            client.get(f"/api/prices/{pid}")
+            for pid in product_ids
+        ]
+        responses = await asyncio.gather(*tasks)
+        return [r.json() for r in responses if r.status_code == 200]
+```
+
+The skill knows the difference between `async def` (runs in event loop) and regular `def` (blocking), when `asyncio.gather` vs `asyncio.TaskGroup` is appropriate, and how to properly pool HTTP connections.
+
+## Testing with pytest
+
+The `pytest-master` skill produces tests that are actually useful — not just tests that pass.
+
+### Fixtures and Parametrize
+
+```python
+import pytest
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+
+@pytest.fixture(scope="session")
+def engine():
+    return create_async_engine("sqlite+aiosqlite:///:memory:")
+
+@pytest.fixture
+async def db(engine) -> AsyncSession:
+    async with AsyncSession(engine) as session:
+        yield session
+        await session.rollback()
+
+@pytest.fixture
+async def client(db) -> AsyncClient:
+    app.dependency_overrides[get_db] = lambda: db
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        yield client
+    app.dependency_overrides.clear()
+
+@pytest.mark.parametrize("email,expected_status", [
+    ("valid@example.com", 200),
+    ("not-an-email", 422),
+    ("", 422),
+    ("a" * 256 + "@example.com", 422),
+])
+async def test_user_creation(client, email, expected_status):
+    response = await client.post("/users", json={"email": email, "username": "testuser"})
+    assert response.status_code == expected_status
+```
+
+The skill uses `scope="session"` for the engine (created once), per-test db fixtures with rollback for isolation, dependency overrides for clean testing, and `parametrize` to test multiple input variations without code duplication.
+
+## Django ORM Optimization
+
+The `django-expert` skill prevents the N+1 query problem and other common Django performance issues:
+
+```python
+# Naive — N+1 queries (1 for orders + 1 per order for user)
+orders = Order.objects.filter(status="pending")
+for order in orders:
+    print(f"{order.user.email}: {order.total}")  # hits DB each time
+
+# With django-expert — 2 queries total
+orders = (
+    Order.objects
+    .select_related("user")
+    .filter(status="pending")
+    .only("total", "created_at", "user__email")
+    .order_by("-created_at")
+)
+
+# Many-to-many — prefetch_related, not select_related
+orders = (
+    Order.objects
+    .prefetch_related("items__product")
+    .filter(user=request.user)
+    .select_related("user", "shipping_address")
+)
+```
+
+The skill knows: `select_related` for ForeignKey/OneToOne (SQL JOIN), `prefetch_related` for ManyToMany/reverse FK (separate query), and `only()` to avoid loading unused fields on large tables.
+
+## Getting Started
+
+1. Install SuperSkills to `~/.claude/skills/`
+2. Open your Python project in Claude Code
+3. Skills activate automatically based on imports and file context — `fastapi-expert` kicks in when FastAPI imports are detected, `pytest-master` activates in test files
+4. Start building: "Create a user authentication endpoint," "Write tests for this service," "Optimize this Django query"
+
+The first time Claude writes a FastAPI endpoint with proper dependency injection, Pydantic v2 validators, async patterns, and OpenAPI docs without being prompted — that's the moment you realize why skills exist.
+
+---
+
+*Get all 106 SuperSkills including the complete Python suite — [download for $50](/#pricing) and write better Python starting today.*

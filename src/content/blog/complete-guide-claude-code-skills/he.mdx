@@ -1,0 +1,193 @@
+---
+title: "המדריך המלא לסקילים של Claude Code ב-2026"
+description: "כל מה שאתם צריכים לדעת על סקילי Claude Code — מה הם, כיצד הם עובדים, 15 הקטגוריות, וכיצד לבנות ספריית סקילים מלאה."
+date: "2026-01-22"
+author: "SuperSkills"
+tags: ["סקילי claude code", "מדריך מלא", "מדריך סקילים", "2026"]
+category: "מדריך"
+---
+
+Claude Code הוא עוזר קידוד AI עוצמתי. Claude Code *עם סקילים* הוא משהו אחר: שותף פעולה בעל ידע עמוק שמביא מומחיות בתחום, אוכף best practices ומייצר פלט איכותי לייצור מהטיוטה הראשונה.
+
+מדריך זה מכסה את כל מה שאתם צריכים לדעת על סקילי Claude Code ב-2026 — מה הם, כיצד הם עובדים, 15 הקטגוריות העיקריות, וכיצד לבנות ספריית סקילים המכסה את כל זרימת העבודה שלכם.
+
+## מה הם סקילי Claude Code?
+
+סקיל Claude Code הוא קובץ `.md` שמתקינים ב-`~/.claude/skills/`. כל סקיל מכיל הוראות מפורטות ומובנות שמנחות את התנהגות Claude בתחום ספציפי.
+
+המושג המרכזי: **סקילים אינם משנים את מה ש-Claude יכול לעשות, הם משנים כיצד Claude מיישם את מה שהוא יודע.**
+
+ל-Claude כבר יש ידע בתחומי אבטחה, בסיסי נתונים, DevOps ופיתוח frontend. אבל ללא הקשר תחום, הוא מיישם את הידע הזה בצורה גנרית. סקיל אומר ל-Claude: "בתחום זה, אלו הם הסטנדרטים שחשובים, אלו התבניות שיש לעקוב אחריהן, ואלו הטעויות שיש להימנע מהן."
+
+ההבדל באיכות הפלט משמעותי. בקשו מ-Claude לכתוב זרימת אימות ללא סקיל ותקבלו משהו שעובד. בקשו עם סקיל `secure-code-guardian` פעיל ותקבלו משהו מוכן לייצור — עם rate limiting, ניהול session, טיפול נכון בשגיאות ותבניות תואמות OWASP.
+
+### כיצד סקילים נטענים
+
+סקילים הם קבצי Markdown פשוטים. Claude Code קורא קבצים ב-`~/.claude/skills/` אוטומטית כשהוא מתחיל סשן. אפשר גם לטעון סקילים ספציפיים במפורש על ידי הפנה אליהם בשיחה.
+
+סקילים מרובים מצטברים — אפשר שיהיו `frontend-developer`, `design-system-architect` ו-`testing-engineer` כולם פעילים באותו סשן. Claude מסנתז הנחיות מכל הסקילים שנטענו.
+
+### בניית לעומת קניית סקילים
+
+אפשר לכתוב סקילים משלכם — סקיל הוא רק קובץ Markdown עם הוראות. האתגר הוא כתיבת סקילים שאפקטיביים בפועל: מכסים את עומק הידע הנכון בתחום, מובנים בדרכים ש-Claude מיישם באמינות, ומקיפים מספיק לטיפול במורכבות העולם האמיתי.
+
+כתיבת סקיל אפקטיבי לתחום שכבר מומחים בו לוקחת כמה שעות של עבודה קפדנית. אוסף SuperSkills הוא 106 סקילים מיוצרים מקצועית ב-15 קטגוריות, המיועדים להיות אפקטיביים מקופסה. [האוסף המלא זמין ב-$50](/#pricing).
+
+## 15 הקטגוריות
+
+### 1. פיתוח Frontend
+
+סקילים: `frontend-developer`, `react-specialist`, `vue-specialist`, `design-system-architect`
+
+סקילי frontend מכסים ארכיטקטורת קומפוננטות, ניהול state, נגישות (WCAG), אופטימיזציית ביצועים (Core Web Vitals), עיצוב רספונסיבי ותבניות CSS מודרניות.
+
+קריאה קשורה: [Claude Code למפתחי Frontend](/blog/claude-code-for-frontend)
+
+### 2. פיתוח Backend
+
+סקילים: `backend-engineer`, `api-designer`, `node-specialist`, `python-backend`
+
+סקילי backend מכסים עיצוב REST ו-GraphQL API, תבניות אימות, ארכיטקטורת middleware, קונבנציות טיפול בשגיאות ותבניות שהופכות APIs לניתנים לתחזוקה.
+
+קריאה קשורה: [בניית REST APIs עם Claude Code](/blog/building-rest-apis-with-claude-code)
+
+### 3. DevOps ותשתית
+
+סקילים: `devops-engineer`, `kubernetes-specialist`, `terraform-engineer`, `monitoring-expert`
+
+סקילי DevOps מכסים containerization, orchestration, IaC, pipelines של CI/CD ו-observability. סקילים אלו מייצרים Dockerfiles מוכנים לייצור עם multi-stage builds ומשתמשים שאינם root, מניפסטי Kubernetes עם הגבלות משאבים נכונות ו-health probes.
+
+קריאה קשורה: [Claude Code למהנדסי DevOps](/blog/claude-code-for-devops)
+
+### 4. בדיקות
+
+סקילים: `testing-engineer`, `tdd-practitioner`, `e2e-specialist`
+
+סקילי בדיקות מכסים בדיקות unit, integration ו-end-to-end. סקיל `tdd-practitioner` מנחה פיתוח מונחה בדיקות — כתיבת בדיקות לפני מימוש ומוודא שבדיקות הן משמעותיות.
+
+קריאה קשורה: [כתוב בדיקות טובות יותר עם AI](/blog/write-better-tests-with-ai)
+
+### 5. אבטחה
+
+סקילים: `security-reviewer`, `secure-code-guardian`
+
+סקילי אבטחה מספקים כיסוי התקפי והגנתי. `security-reviewer` מתייחס לכל קוד כפני שטח תקיפה פוטנציאלי. `secure-code-guardian` מממש תבניות מאובטחות מההתחלה.
+
+קריאה קשורה: [Claude Code למהנדסי אבטחה](/blog/claude-code-for-security)
+
+### 6. בסיסי נתונים
+
+סקילים: `database-optimizer`, `postgres-pro`, `sql-pro`
+
+סקילי בסיסי נתונים מכסים אופטימיזציית שאילתות, עיצוב אינדקסים, נורמליזציית סכמה וניתוח ביצועים.
+
+קריאה קשורה: [אופטימיזציה של בסיסי נתונים עם Claude Code](/blog/database-optimization-with-ai)
+
+### 7. פיתוח מובייל
+
+סקילים: `react-native-developer`, `ios-specialist`, `android-specialist`
+
+סקילי מובייל מכסים קונבנציות ספציפיות לפלטפורמה, תבניות ביצועים, ארכיטקטורת ניווט וההבדלים שחשובים בין פיתוח ווב לנייטיב.
+
+קריאה קשורה: [Claude Code למפתחי מובייל](/blog/claude-code-for-mobile)
+
+### 8. הנדסת AI/ML
+
+סקילים: `ml-engineer`, `llm-integrator`, `data-scientist`
+
+סקילי AI/ML מכסים זרימות אימון מודלים, תבניות הערכה, אינטגרציית LLM API, הנדסת prompt, ארכיטקטורות RAG ופרקטיקות הנדסה שהופכות מערכות ML לאמינות.
+
+### 9. הנדסת שיווק וצמיחה
+
+סקילים: `growth-engineer`, `analytics-engineer`, `seo-technician`
+
+סקילי הנדסת שיווק מכסים instrumenting אנליטיקה, תשתית A/B testing, מימוש SEO טכני ומעקב המרות.
+
+### 10. ארכיטקטורת תוכנה
+
+סקילים: `architecture-advisor`, `system-designer`, `spec-miner`
+
+סקילי ארכיטקטורה מכסים עיצוב מערכות, מידול דומיינים, פירוק שירותים וקבלת החלטות ארכיטקטוניות. סקיל `spec-miner` שימושי במיוחד להבנת בסיסי קוד קיימים.
+
+קריאה קשורה: [Claude Code לתורמי קוד פתוח](/blog/claude-code-for-open-source)
+
+### 11. CLI וכלים
+
+סקילים: `cli-builder`, `automation-engineer`
+
+סקילי CLI מכסים תבניות ניתוח ארגומנטים, prompts אינטראקטיביים, עיצוב פלט, דיווח שגיאות וקונבנציות שהופכות כלי CLI לאיכותיים.
+
+### 12. שפות
+
+סקילים: `python-pro`, `typescript-pro`, `go-engineer`, `rust-engineer`
+
+סקילים ספציפיים לשפה הולכים עמוק יותר מידע כללי — הם מכסים idioms, קונבנציות ותבניות ספציפיות לאקוסיסטם של כל שפה.
+
+קריאה קשורה: [Claude Code למפתחי Python](/blog/claude-code-for-python)
+
+### 13. פלטפורמות ענן
+
+סקילים: `aws-architect`, `gcp-engineer`, `azure-engineer`
+
+סקילי ענן מכסים שירותים ספציפיים לפלטפורמה, ארכיטקטורות, תבניות IAM, אופטימיזציית עלויות ותבניות רשת ואבטחה.
+
+### 14. מוניטורינג ו-Observability
+
+סקילים: `monitoring-expert`, `log-engineer`, `performance-engineer`
+
+סקילי מוניטורינג מכסים עיצוב מטריקות (שיטת RED, שיטת USE), אסטרטגיית התרעות, מבנה לוגים, distributed tracing והגדרת SLO/SLI.
+
+### 15. מערכות עיצוב
+
+סקילים: `design-system-architect`, `ui-component-builder`, `accessibility-engineer`
+
+סקילי מערכות עיצוב מכסים ארכיטקטורת קומפוננטות, עיצוב tokens, נגישות (WCAG AAA), תיעוד ותבניות שהופכות מערכות UI לעקביות וניתנות לתחזוקה.
+
+## כיצד לארגן את ספריית הסקילים שלכם
+
+עם 106 סקילים זמינים, ארגון חשוב. הנה כיצד לחשוב על זה:
+
+**סקילי ליבה (תמיד פעילים):** קבוצה קטנה של סקילים שחלים על כמעט כל מה שאתם בונים. לרוב המפתחים יש 3–5 סקילי ליבה שהם טוענים לכל סשן.
+
+**stacks ספציפיים לפרויקט:** קבצו סקילים לפי סוג פרויקט. פרויקט React/Node.js SaaS תמיד טוען: `frontend-developer`, `react-specialist`, `backend-engineer`, `database-optimizer`, `security-reviewer`.
+
+**סקילים ספציפיים למשימה:** חלק מהסקילים נטענים רק למשימות ספציפיות. `security-reviewer` לביקורת אבטחה. `spec-miner` בכניסה לבסיס קוד חדש.
+
+**סקילים לפי שלב:**
+- שלב מוקדם: `backend-engineer`, `frontend-developer`, `api-designer`, `database-optimizer`
+- צמיחה: `devops-engineer`, `testing-engineer`, `security-reviewer`
+- סקייל: `postgres-pro`, `monitoring-expert`, `architecture-advisor`
+
+קריאה קשורה: [איך סטארטאפים שולחים פי 10 יותר מהר עם Claude Code](/blog/how-startups-ship-faster-with-ai)
+
+## אוסף SuperSkills
+
+אוסף SuperSkills כולל את כל 106 הסקילים ב-15 הקטגוריות המתוארות לעיל — מיוצרים מקצועית, בדוקים על פרויקטים אמיתיים ומוכנים לשימוש.
+
+כל סקיל באוסף מיועד ל:
+- הייצור של פלט שעוקב אחר best practices בתעשייה, לא עצות גנריות
+- יישום עקבי על פני כל הטווח של משימות בתחומו
+- הצטברות טובה עם סקילים אחרים — ההנחיות משלימות, לא סותרות
+
+האוסף הוא רכישה חד-פעמית ב-$50. מתקינים את קבצי הסקיל ב-`~/.claude/skills/` והם זמינים מיד בכל סשן Claude Code.
+
+---
+
+## מה לקרוא הבא
+
+רוצים להעמיק בתחומים ספציפיים? התחילו כאן:
+
+**לפי תפקיד:**
+- מפתחי Frontend → [Claude Code למפתחי Frontend](/blog/claude-code-for-frontend)
+- מפתחי Backend → [בניית REST APIs עם Claude Code](/blog/building-rest-apis-with-claude-code)
+- מהנדסי DevOps → [Claude Code למהנדסי DevOps](/blog/claude-code-for-devops)
+- מהנדסי אבטחה → [Claude Code למהנדסי אבטחה](/blog/claude-code-for-security)
+
+**לפי תרחיש שימוש:**
+- ביצועי בסיסי נתונים → [אופטימיזציה של בסיסי נתונים עם Claude Code](/blog/database-optimization-with-ai)
+- קוד פתוח → [Claude Code לתורמי קוד פתוח](/blog/claude-code-for-open-source)
+- סטארטאפים → [איך סטארטאפים שולחים פי 10 יותר מהר עם Claude Code](/blog/how-startups-ship-faster-with-ai)
+
+---
+
+*מוכנים לבנות את ספריית הסקילים שלכם? קבלו את כל 106 הסקילים SuperSkills ב-$50 — [הורידו עכשיו](/#pricing) והתחילו עם האוסף המלא.*

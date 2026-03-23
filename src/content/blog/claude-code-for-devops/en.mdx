@@ -1,0 +1,281 @@
+---
+title: "Claude Code for DevOps Engineers"
+description: "How DevOps engineers use Claude Code skills to automate infrastructure, write better Dockerfiles, and manage Kubernetes like a pro."
+date: "2026-03-12"
+author: "SuperSkills"
+tags: ["claude code", "devops", "docker", "kubernetes", "infrastructure"]
+category: "Use Case"
+---
+
+DevOps work is demanding. You're context-switching between Dockerfiles, Kubernetes manifests, Terraform modules, CI/CD pipelines, and monitoring configs — often across multiple projects with different tech stacks. Every mistake in infrastructure code costs real time and can take down production.
+
+Claude Code, when equipped with the right skills, becomes an infrastructure expert that knows your stack, follows best practices, and never forgets to add health checks.
+
+## DevOps Skills in the SuperSkills Collection
+
+These four skills are purpose-built for infrastructure work:
+
+**`devops-engineer`** — The generalist skill. Covers containerization, orchestration, CI/CD, and infrastructure fundamentals. Applies sensible defaults across all DevOps tooling.
+
+**`kubernetes-specialist`** — Deep K8s expertise: proper resource limits, readiness/liveness probes, RBAC, network policies, Helm chart structure, and production-ready manifests.
+
+**`terraform-engineer`** — Infrastructure as Code best practices: module structure, remote state configuration, variable management, provider versioning, and workspace strategies.
+
+**`monitoring-expert`** — Observability focus: Prometheus metrics, Grafana dashboards, alerting rules, log aggregation patterns, and SLI/SLO definitions.
+
+These skills don't work in isolation — they stack. Loading both `devops-engineer` and `kubernetes-specialist` gives Claude deep K8s knowledge grounded in broader DevOps principles.
+
+## Real Scenario: Writing Dockerfiles
+
+### Without a Skill
+
+Ask Claude to "write a Dockerfile for a Node.js app" without any skill, and you'll likely get something functional but naive:
+
+```dockerfile
+FROM node:18
+WORKDIR /app
+COPY . .
+RUN npm install
+EXPOSE 3000
+CMD ["node", "index.js"]
+```
+
+It works in development. In production, it's a problem: it runs as root, includes dev dependencies, has no health check, exposes unnecessary packages, and creates a large image from the full source directory.
+
+### With the `devops-engineer` Skill
+
+The same prompt with the skill active produces a multi-stage, hardened Dockerfile:
+
+```dockerfile
+# Build stage
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Runtime stage
+FROM node:20-alpine AS runtime
+RUN addgroup -g 1001 -S nodejs && adduser -S nodeuser -u 1001
+WORKDIR /app
+COPY --from=builder --chown=nodeuser:nodejs /app/node_modules ./node_modules
+COPY --chown=nodeuser:nodejs . .
+USER nodeuser
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget -qO- http://localhost:3000/health || exit 1
+CMD ["node", "--max-old-space-size=512", "index.js"]
+```
+
+The skill knows to: use Alpine for smaller images, multi-stage builds to exclude build artifacts, create a non-root user, set proper ownership, add a health check, and pass memory limits to Node.
+
+That's the difference between a Dockerfile that works and one that's production-ready.
+
+## Real Scenario: Kubernetes Manifests
+
+### Without a Skill
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-app
+        image: my-app:latest
+        ports:
+        - containerPort: 3000
+```
+
+Missing: resource limits (so one pod can starve the node), liveness/readiness probes (so Kubernetes can't tell when the app is healthy), pod disruption budgets, security context, and proper image tagging.
+
+### With the `kubernetes-specialist` Skill
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  labels:
+    app: my-app
+    version: "1.2.3"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: my-app
+        version: "1.2.3"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: my-app
+        image: registry.example.com/my-app:1.2.3
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: my-app-pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: my-app
+```
+
+The skill adds everything that the basic manifest missed — and it knows why each field matters.
+
+## Real Scenario: CI/CD Pipelines
+
+DevOps engineers spend significant time writing and debugging pipeline configurations. With the `devops-engineer` skill, Claude understands pipeline best practices across GitHub Actions, GitLab CI, and other systems.
+
+Ask: "Write a GitHub Actions workflow for a Node.js app with tests, lint, Docker build, and deployment to Kubernetes."
+
+The skill ensures Claude will:
+- Cache dependencies correctly (saving minutes per run)
+- Run lint and tests in parallel where possible
+- Use matrix builds for multi-version testing
+- Build and push Docker images with proper tagging (branch, commit SHA, semver)
+- Use OIDC authentication instead of long-lived credentials
+- Deploy with rollout verification and automatic rollback on failure
+- Store secrets correctly via GitHub secrets, never hardcoded
+
+A well-structured workflow from the skill might look like:
+
+```yaml
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint & npm run test -- --coverage
+        # parallel execution
+
+  build:
+    needs: quality
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: Build and push
+        run: |
+          IMAGE_TAG="${{ github.sha }}"
+          docker build -t $ECR_REGISTRY/$IMAGE_NAME:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+```
+
+## Real Scenario: Terraform Modules
+
+Infrastructure as Code benefits enormously from consistent patterns. The `terraform-engineer` skill ensures Claude writes Terraform that follows module best practices:
+
+- Variables with proper types, descriptions, and validation rules
+- Outputs that expose what downstream modules need
+- Remote state with locking via S3 + DynamoDB or Terraform Cloud
+- Provider version pinning to prevent surprise upgrades
+- Tagging standards applied consistently across all resources
+- Data sources for referencing existing infrastructure, not hardcoded IDs
+
+A database module written without the skill might hardcode the instance class and skip encryption. With the skill, Claude automatically adds `encrypted = true`, uses a variable for instance class with a sensible default and allowed values list, adds parameter group configuration, enables automated backups with a configurable retention period, and tags everything for cost allocation.
+
+## Real Scenario: Monitoring and Observability
+
+The `monitoring-expert` skill transforms how Claude handles observability requirements. Give it a service and ask for monitoring setup, and you'll get:
+
+- **Prometheus metrics** — RED method (Rate, Errors, Duration) instrumented properly in the application
+- **Grafana dashboard** as JSON with the key panels: request rate, error rate, latency percentiles (p50/p95/p99), and resource utilization
+- **Alerting rules** — PagerDuty-ready Prometheus alert definitions with proper severity labels, runbook links, and realistic thresholds based on SLOs
+- **Log patterns** — structured JSON logging with trace IDs for correlation
+
+Without the skill, Claude gives you generic monitoring advice. With it, you get production-grade observability configuration.
+
+## The Compounding Effect
+
+The real power isn't any single skill — it's loading multiple skills for complex tasks.
+
+A typical DevOps session might have `devops-engineer`, `kubernetes-specialist`, and `terraform-engineer` all active. When you ask Claude to "set up a new microservice with Kubernetes deployment, Terraform infrastructure, and monitoring," it draws from all three skill bodies simultaneously.
+
+The output is coherent infrastructure code that follows consistent patterns across all layers — something that usually requires a senior engineer who knows all three domains well.
+
+## Getting Started with DevOps Skills
+
+1. Install the SuperSkills collection to `~/.claude/skills/`
+2. Start Claude Code in your infrastructure repository
+3. Skills activate automatically based on your context and file types
+4. Ask for what you need: "Write a Dockerfile," "Create a K8s deployment," "Write a Terraform module for RDS"
+5. Review the output — it will be production-ready from the start
+
+The first time Claude writes you a hardened, multi-stage Dockerfile with a non-root user and health checks without being asked, you'll understand why these skills matter.
+
+---
+
+*Get all 106 SuperSkills including the complete DevOps suite — [download for $50](/pricing) and deploy better infrastructure starting today.*

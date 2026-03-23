@@ -1,0 +1,277 @@
+---
+title: "Claude Code for Frontend Developers"
+description: "How frontend developers use Claude Code skills to build better React, Next.js, and Vue applications with AI-powered expertise."
+date: "2026-03-10"
+author: "SuperSkills"
+tags: ["claude code", "frontend", "react", "nextjs", "vue"]
+category: "Use Case"
+---
+
+Frontend development has never moved faster. React Server Components, Next.js App Router, the Vue Composition API, TypeScript 5, Tailwind v4 — the ecosystem shifts every few months and keeping up while actually shipping is a real challenge.
+
+Claude Code with the right skills doesn't just autocomplete code. It reasons with framework-specific knowledge, applies current best practices, and catches the kinds of mistakes that only show up at runtime or under load.
+
+## Frontend Skills in the SuperSkills Collection
+
+These skills form the core frontend toolkit:
+
+**`react-expert`** — React 18+ patterns: Server Components, Suspense, concurrent features, proper hook patterns, and performance optimization techniques.
+
+**`nextjs-developer`** — Next.js App Router expertise: server vs client component decisions, data fetching patterns, metadata API, route handlers, and deployment optimization.
+
+**`vue-expert`** — Vue 3 Composition API mastery: `<script setup>`, composables, Pinia, Vue Router patterns, and performance best practices.
+
+**`typescript-pro`** — Advanced TypeScript: strict mode, generics, discriminated unions, type guards, utility types, and the patterns that make TypeScript genuinely useful rather than just annoying.
+
+**`ui-ux-pro-max`** — Design implementation skill: spacing, typography, accessibility, responsive patterns, animation principles, and turning designs into production-quality interfaces.
+
+**`playwright-tester`** — End-to-end testing with Playwright: test architecture, selector strategies, network mocking, visual regression, and CI integration.
+
+Each skill activates automatically when Claude Code detects the relevant context — no manual invocation needed.
+
+## Building Components Faster
+
+The most immediate benefit is component quality on the first attempt. Without a frontend skill, Claude writes functional code. With `react-expert` active, it writes idiomatic, performant code with the right patterns from the start.
+
+### Example: A Data Table Component
+
+Without skills, a data table request returns a straightforward implementation: a component that fetches data in `useEffect`, stores it in `useState`, renders a table, maybe handles loading with a boolean flag.
+
+With `react-expert` and `nextjs-developer` skills active, the same request returns:
+
+```tsx
+// app/users/page.tsx — Server Component by default
+import { Suspense } from 'react'
+import { UserTable } from './user-table'
+import { UserTableSkeleton } from './user-table-skeleton'
+
+export default function UsersPage() {
+  return (
+    <Suspense fallback={<UserTableSkeleton />}>
+      <UserTable />
+    </Suspense>
+  )
+}
+```
+
+```tsx
+// app/users/user-table.tsx — async Server Component
+import { getUsers } from '@/lib/data'
+
+export async function UserTable() {
+  const users = await getUsers() // direct async/await, no useEffect
+
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Email</th>
+          <th scope="col">Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        {users.map((user) => (
+          <tr key={user.id}>
+            <td>{user.name}</td>
+            <td>{user.email}</td>
+            <td>{user.role}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+```
+
+The skill knew to: use a Server Component for data fetching (no client-side waterfall), wrap it in Suspense with a skeleton for streaming, use `scope="col"` on headers for accessibility, and fetch data with direct async/await instead of hooks.
+
+That's not magic — it's what a senior Next.js developer would write. The skill codifies that knowledge.
+
+## State Management Done Right
+
+State management decisions are one of the biggest sources of complexity in frontend applications. The `react-expert` skill encodes clear guidance on what tool belongs where.
+
+Ask Claude to "add cart functionality to this e-commerce app" and with the skill active, you'll get:
+
+- **React Query** for product data, cart validation, and checkout mutations — because these involve server synchronization
+- **Zustand** for cart UI state (open/closed drawer, optimistic updates) — because this is local UI state
+- **URL state** for filters and search — because this is shareable and persistent
+- **`useState`** for individual form inputs — because this scope doesn't need to be global
+
+Without the skill, Claude might reach for a single global Redux store for everything, or put server data in `useState` without caching, or lift state unnecessarily. The skill prevents these architectural mistakes before they happen.
+
+## Responsive Design and Tailwind
+
+The `ui-ux-pro-max` skill changes how Claude handles responsive design. Instead of adding breakpoints as an afterthought, the skill enforces mobile-first thinking:
+
+```tsx
+// Without skill — desktop-first with breakpoint overrides
+<div className="grid grid-cols-3 md:grid-cols-2 sm:grid-cols-1">
+
+// With ui-ux-pro-max — mobile-first, proper spacing scale
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+```
+
+The skill also catches common design mistakes:
+- Text that's too small on mobile (below 16px base font)
+- Touch targets that are too small (below 44x44px)
+- Missing focus styles for keyboard navigation
+- Color contrast ratios that fail WCAG AA
+- Images without `alt` text or with decorative images missing `alt=""`
+
+These aren't caught by TypeScript or ESLint — they require design knowledge. The skill provides that.
+
+## Accessibility by Default
+
+The `ui-ux-pro-max` skill makes Claude accessibility-aware across all components. When you ask for a modal component, you get one that:
+
+- Traps focus inside the modal when open
+- Returns focus to the trigger element on close
+- Responds to Escape key
+- Has `role="dialog"` and `aria-modal="true"`
+- Has a labeled title via `aria-labelledby`
+- Prevents body scroll when open
+
+When you ask for a dropdown menu, you get ARIA patterns for `role="menu"` with keyboard navigation (arrow keys, Home, End, character search).
+
+When you ask for a form, you get proper `<label>` elements associated with inputs, error messages linked via `aria-describedby`, and required fields marked with `aria-required`.
+
+This is the difference between code that looks accessible and code that actually is.
+
+## TypeScript Patterns That Scale
+
+The `typescript-pro` skill transforms how Claude uses TypeScript. It moves past basic type annotations into patterns that prevent entire categories of bugs.
+
+### Discriminated Unions for API State
+
+```typescript
+// Without skill — fragile boolean flags
+interface FetchState {
+  data: User[] | null
+  loading: boolean
+  error: string | null
+}
+
+// With typescript-pro — exhaustive, type-safe
+type FetchState<T> =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; data: T }
+  | { status: 'error'; error: Error }
+
+// Compiler enforces exhaustive handling
+function render(state: FetchState<User[]>) {
+  switch (state.status) {
+    case 'idle': return <EmptyState />
+    case 'loading': return <Skeleton />
+    case 'success': return <UserList users={state.data} />
+    case 'error': return <ErrorMessage error={state.error} />
+  }
+}
+```
+
+### Branded Types for Safety
+
+```typescript
+// Without skill — easy to mix up IDs
+function getUser(userId: string) { ... }
+function getPost(postId: string) { ... }
+getUser(postId) // TypeScript allows this — it shouldn't
+
+// With typescript-pro — compile-time prevention
+type UserId = string & { readonly __brand: 'UserId' }
+type PostId = string & { readonly __brand: 'PostId' }
+
+function getUser(userId: UserId) { ... }
+function getPost(postId: PostId) { ... }
+getUser(postId) // TypeScript error — correct behavior
+```
+
+These patterns don't just catch bugs during development — they make the codebase self-documenting.
+
+## Testing with Playwright
+
+The `playwright-tester` skill makes Claude's E2E tests actually reliable. Common issues with AI-generated Playwright tests: fragile selectors, missing waits, no error handling, tests that pass in CI but fail locally (or vice versa).
+
+With the skill, Claude writes tests that:
+
+```typescript
+// Stable selectors using ARIA roles and test IDs
+await page.getByRole('button', { name: 'Add to cart' }).click()
+await page.getByTestId('cart-drawer').waitFor({ state: 'visible' })
+await expect(page.getByRole('status')).toContainText('1 item')
+
+// Network mocking for reliable tests
+await page.route('**/api/products', route =>
+  route.fulfill({
+    status: 200,
+    body: JSON.stringify(mockProducts)
+  })
+)
+
+// Proper cleanup and isolation
+test.beforeEach(async ({ page }) => {
+  await page.goto('/shop')
+  await page.evaluate(() => localStorage.clear())
+})
+```
+
+The skill knows to use `getByRole` over CSS selectors, to use `waitFor` instead of arbitrary `sleep`, to mock network requests for deterministic tests, and to isolate state between tests.
+
+## Vue 3 with the `vue-expert` Skill
+
+Vue developers get the same quality lift. The `vue-expert` skill ensures Claude writes modern Vue 3 code:
+
+```vue
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useUserStore } from '@/stores/user'
+import type { User } from '@/types'
+
+// Composable pattern over options API mixins
+const { users, fetchUsers, isLoading } = useUsers()
+
+// Computed for derived state, not data
+const activeUsers = computed(() =>
+  users.value.filter(u => u.status === 'active')
+)
+
+onMounted(fetchUsers)
+</script>
+
+<template>
+  <div>
+    <LoadingSpinner v-if="isLoading" />
+    <UserList v-else :users="activeUsers" />
+  </div>
+</template>
+```
+
+The skill prevents: Options API when Composition API is available, direct Vuex mutations without actions, template refs without type annotations, and `v-for` without `:key`.
+
+## The Compound Effect: Stacking Skills
+
+The real power shows when multiple skills work together. A typical frontend session might load `react-expert`, `nextjs-developer`, `typescript-pro`, and `ui-ux-pro-max` simultaneously.
+
+When you ask Claude to "build a product listing page with filtering, sorting, and infinite scroll," it draws from all four:
+
+- **`nextjs-developer`** handles the server/client split, data fetching architecture, and URL-based filter state
+- **`react-expert`** structures the component tree, handles Suspense boundaries, and optimizes re-renders
+- **`typescript-pro`** types the filter state, product data, and event handlers exhaustively
+- **`ui-ux-pro-max`** ensures the grid is responsive, loading states use skeletons, and all interactive elements are keyboard-accessible
+
+The result is production-quality code from a single request, not after five rounds of iteration.
+
+## Getting Started
+
+1. Install SuperSkills to `~/.claude/skills/`
+2. Start Claude Code in your frontend project
+3. Skills activate based on file types and keywords — no configuration needed
+4. Start building: "Create a form component with validation," "Add authentication to this Next.js app," "Write Playwright tests for checkout flow"
+
+The first component Claude generates that perfectly handles loading states, accessibility, TypeScript types, and responsive layout without being asked — that's when the value of skills becomes undeniable.
+
+---
+
+*Get all 106 SuperSkills including the complete frontend suite — [download for $50](/pricing) and ship better frontend code starting today.*

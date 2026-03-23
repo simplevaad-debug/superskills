@@ -1,0 +1,221 @@
+---
+title: "Claude Code لمهندسي الأمن"
+description: "كيف يستخدم مهندسو الأمن مهارات Claude Code للعثور على الثغرات وتطبيق المصادقة الآمنة ومنع هجمات OWASP Top 10."
+date: "2026-01-30"
+author: "SuperSkills"
+tags: ["claude code", "أمن", "owasp", "ثغرات", "مصادقة"]
+category: "حالة استخدام"
+---
+
+الأمن هو الانضباط الهندسي الوحيد الذي لا يكون فيه "جيد بما يكفي" مقبولاً أبداً. حقن SQL واحد فُوِّت، تطبيق JWT ضعيف واحد، معدل تحديد مفقود — وتحدث الاختراق. يتحمل مهندسو الأمن عبء حماية الأنظمة التي يبنيها الجميع.
+
+Claude Code، المجهَّز بمهارات تركز على الأمن، يتحول إلى مراجع ثانٍ يقظ يفكر بطريقة عدائية افتراضياً — يلتقط ما تفوّته العيون المتعبة أثناء مراجعة الكود.
+
+## مهارات الأمن في مجموعة SuperSkills
+
+مهارتان مصمَّمتان خصيصاً لعمل الأمن:
+
+**`security-reviewer`** — العدسة الهجومية. تراجع الكود بحثاً عن ثغرات في جميع فئات OWASP Top 10، تتحقق من الأنماط غير الآمنة، والتشفير الضعيف، وعيوب الحقن، وكسر التحكم في الوصول. تعامل كل مدخل باعتباره معادياً محتملاً.
+
+**`secure-code-guardian`** — العدسة الدفاعية. تُرشد تطبيق الأنماط الآمنة: تدفقات المصادقة الصحيحة، وإدارة الأسرار، وتعقيم المدخلات، وترميز المخرجات، وهندسة الدفاع المتعمق. تساعد على كتابة كود آمن بالتصميم، وليس بالصدفة.
+
+حمِّل كليهما معاً للحصول على تغطية أمنية شاملة — يجد `security-reviewer` ما هو معطوب، ويظهر `secure-code-guardian` كيفية إصلاحه بشكل صحيح.
+
+## الوقاية من OWASP Top 10
+
+يمثّل OWASP Top 10 أكثر مخاطر أمان تطبيقات الويب خطورةً. إليك كيف تتعامل مهارات الأمن مع كل فئة رئيسية:
+
+### 1. الحقن (SQL وNoSQL والأوامر)
+
+بدون مهارة، قد يكتب Claude استعلاماً باستخدام تسلسل السلاسل — تضمين مدخلات المستخدم مباشرةً في سلسلة SQL. مع تفعيل `security-reviewer`، يحدّد Claude هذا على الفور ويعيد الكتابة باستخدام الاستعلامات ذات المعاملات أو ORM:
+
+```python
+# آمن — استعلام ذو معاملات
+query = "SELECT * FROM users WHERE email = %s"
+cursor.execute(query, (email,))
+
+# أو مع SQLAlchemy ORM — أفضل حتى
+user = db.session.query(User).filter(User.email == email).first()
+```
+
+تفهم المهارة أن الاستعلامات ذات المعاملات ليست "ممارسة أفضل" — إنها متطلب صارم. تسلسل السلاسل غير مقبول أبداً للاستعلامات التي تحتوي على مدخلات المستخدم.
+
+### 2. المصادقة المكسورة
+
+تطبيق الجلسة الساذج لا يحتوي على تحديد معدل، ولا إعادة توليد للجلسة بعد تسجيل الدخول، ويكشف ما إذا كان حساب المستخدم موجوداً. مع `secure-code-guardian`، يضيف التطبيق تحديد المعدل ومقارنة كلمة المرور بوقت ثابت وإعادة توليد الجلسة وردود الخطأ الموحدة:
+
+```javascript
+app.post('/login', rateLimit({ max: 5, windowMs: 15 * 60 * 1000 }), async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
+  const valid = user && await bcrypt.compare(password, user.passwordHash);
+
+  if (!valid) {
+    // نفس الاستجابة سواء وُجد المستخدم أم لا — يمنع عدّ المستخدمين
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  req.session.regenerate((err) => {
+    req.session.userId = user.id;
+    req.session.createdAt = Date.now();
+    res.json({ success: true });
+  });
+});
+```
+
+### 3. البرمجة النصية عبر المواقع (XSS)
+
+XSS هو أكثر ثغرات الويب شيوعاً. تفرض مهارة الأمن إدراج المحتوى باستخدام طرق DOM الآمنة — `textContent` للنص العادي، ومكتبة معقّمة (مثل DOMPurify) لأي محتوى يتطلب حقيقةً ترميزاً. للقوالب المُصيَّرة على الخادم، تصرّ على محركات القوالب مع تمكين الهروب التلقائي، وليس تسلسل السلاسل اليدوي لبناء مخرجات HTML.
+
+### 4. حماية CSRF
+
+للعمليات التي تغير الحالة (POST/PUT/DELETE)، تطبّق المهارة نمط رمز المزامنة وتضمن عدم إعفاء حماية CSRF من المسارات الحساسة:
+
+```python
+# يتحقق Flask-WTF من رمز CSRF تلقائياً على جميع المسارات التي تغير الحالة
+@app.route('/transfer', methods=['POST'])
+def transfer():
+    amount = request.form['amount']
+    # معالجة التحويل — رمز CSRF مُتحقَّق منه بواسطة middleware الإطار
+```
+
+## التحقق من صحة المدخلات
+
+تفرض مهارة `secure-code-guardian` التحقق عند كل حد — باستخدام نهج القائمة البيضاء: حدد بالضبط ما هو صالح وارفض كل شيء آخر:
+
+```typescript
+import { z } from 'zod';
+
+const CreateUserSchema = z.object({
+  email: z.string().email().max(254),
+  password: z.string().min(12).max(128),
+  role: z.enum(['user', 'admin']).default('user'),
+  age: z.number().int().min(18).max(120),
+});
+
+app.post('/users', async (req, res) => {
+  const result = CreateUserSchema.safeParse(req.body);
+
+  if (!result.success) {
+    return res.status(400).json({
+      error: 'Invalid input',
+      // لا تكشف أبداً تفاصيل المخطط الداخلية في الإنتاج
+      ...(process.env.NODE_ENV !== 'production' && { details: result.error.issues })
+    });
+  }
+
+  const validatedData = result.data;
+  // المتابعة بالبيانات الآمنة ذات النوع المحدد
+});
+```
+
+تفرض المهارة التحقق من جانب الخادم (التحقق من جانب العميل هو تجربة المستخدم، وليس أماناً) والمخططات الصارمة ورسائل الخطأ غير المسرِّبة للمعلومات.
+
+## تدقيق التبعيات
+
+للتطبيقات الحديثة مئات التبعيات الانتقالية — كل منها سطح هجوم محتمل. مع مهارة الأمن، يبني Claude تدقيقاً آلياً في سير عمل CI:
+
+```yaml
+name: تدقيق الأمن
+
+on:
+  push:
+  schedule:
+    - cron: '0 9 * * 1'  # كل صباح اثنين
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm audit --audit-level=high
+      - uses: ossf/scorecard-action@v2.3.1
+        with:
+          results_format: sarif
+      - uses: github/codeql-action/upload-sarif@v3
+```
+
+## فحص الأسرار
+
+الأسرار المُضمَّنة في الكود من أكثر الثغرات شيوعاً وقابلية للوقاية. تُنشئ مهارة الأمن الوقاية في طبقات متعددة — خطاف قبل الالتزام يحجب الأسرار قبل دخولها المستودع، وخطوة CI تفحص التاريخ الكامل:
+
+```yaml
+- name: فحص الأسرار
+  uses: trufflesecurity/trufflehog@main
+  with:
+    path: ./
+    base: ${{ github.event.repository.default_branch }}
+    head: HEAD
+    extra_args: --only-verified
+```
+
+كما تُرشد المهارة إدارة متغيرات البيئة: ملفات `.env` للتطوير المحلي، ومديرو الأسرار (AWS Secrets Manager وHashiCorp Vault) للإنتاج، و`.gitignore` يشمل جميع ملفات `.env*`.
+
+## تطبيق المصادقة: JWT بالطريقة الصحيحة
+
+يُساء استخدام JWT على نطاق واسع. تعرف مهارة الأمن المزالق — هجمات الخلط الخوارزمي، واستغلال خوارزمية "none"، والادعاءات المفقودة، وأعمار الرمز المفرطة في الطول:
+
+```javascript
+const JWT_SECRET = process.env.JWT_SECRET; // قيمة عشوائية 256-بت على الأقل
+
+function generateTokens(userId) {
+  const accessToken = jwt.sign(
+    { sub: userId, type: 'access' },
+    JWT_SECRET,
+    {
+      algorithm: 'HS256', // حدد صراحةً — لا تدع الرأس يحكم
+      expiresIn: '15m',   // رموز وصول قصيرة العمر
+      issuer: 'superskills.app',
+      audience: 'superskills.app',
+    }
+  );
+  return accessToken;
+}
+
+function verifyToken(token) {
+  return jwt.verify(token, JWT_SECRET, {
+    algorithms: ['HS256'], // قائمة بيضاء — رفض RS256/none/إلخ
+    issuer: 'superskills.app',
+    audience: 'superskills.app',
+  });
+}
+```
+
+تحديد الخوارزمية الصريح، وأعمار قصيرة، وادعاءات صحيحة، وقائمة بيضاء للخوارزميات — كل الحقول التي تحذفها تطبيقات JWT "just works".
+
+## سيناريو حقيقي: مراجعة كود الأمن
+
+أعطِ مهارة الأمن وحدة تحكم واطلب مراجعة. نقطة نهاية حذف بسيطة:
+
+```python
+@app.route('/admin/users/<user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    user = User.query.get(user_id)
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({'deleted': user_id})
+```
+
+مع تفعيل `security-reviewer`، يحدد Claude خمس مشكلات في مرور واحد:
+
+1. **لا يوجد فحص مصادقة** — يمكن لأي شخص استدعاء نقطة النهاية هذه
+2. **لا يوجد فحص تفويض** — يمكن للمستخدمين المصادق عليهم حذف أي حساب
+3. **IDOR** — user_id من URL لا يُتحقَّق منه أبداً للملكية
+4. **لا يوجد تسجيل تدقيق** — لا تُسجَّل عمليات الحذف للامتثال
+5. **لا يوجد حذف ناعم** — يُدمَّر البيانات نهائياً دون مسار استرداد
+
+تضيف النسخة المُصحَّحة المصادقة وفحوصات الأدوار ومنع الحذف الذاتي والحذف الناعم وتسجيل التدقيق — كل ذلك في مرور واحد.
+
+## البدء مع مهارات الأمن
+
+1. ثبّت مجموعة SuperSkills في `~/.claude/skills/`
+2. حمِّل `security-reviewer` عند مراجعة الكود الموجود
+3. حمِّل `secure-code-guardian` عند كتابة كود مصادقة أو تفويض أو معالجة بيانات جديد
+4. حمِّل كليهما معاً أثناء عمليات تدقيق الأمن
+5. اسأل مباشرةً: "راجع نقطة النهاية هذه بحثاً عن ثغرات أمنية" أو "طبّق إعادة تعيين كلمة مرور آمنة"
+
+أخطاء الأمن مكلفة في الاكتشاف بعد النشر وكارثية في الإغفال كلياً. وجود زوج ثانٍ من العيون العدائية — نشط في كل مراجعة كود — يغيّر ما يتسرب.
+
+---
+
+*احصل على 106 مهارات SuperSkills بما فيها مجموعة الأمن الكاملة — [نزّلها بـ $50](/#pricing) وابدأ في شحن كود أكثر أماناً اليوم.*

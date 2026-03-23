@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Prevent replay attack: reject if order was already processed
     const alreadyUsed = await isOrderAlreadyUsed(orderID);
     if (alreadyUsed) {
       return NextResponse.json(
@@ -26,10 +25,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify order amount before capturing to prevent price manipulation
     const orderValid = await verifyOrderAmount(orderID, EXPECTED_AMOUNT, EXPECTED_CURRENCY);
     if (!orderValid) {
-      console.error(`Order ${orderID} failed amount verification`);
       return NextResponse.json(
         { error: "Order verification failed" },
         { status: 403 }
@@ -39,7 +36,7 @@ export async function POST(req: NextRequest) {
     const result = await captureOrder(orderID);
 
     if (result.status === "COMPLETED") {
-      await savePurchase({
+      const saved = await savePurchase({
         paypal_order_id: orderID,
         payer_email: result.payer_email,
         payer_name: result.payer_name,
@@ -47,6 +44,13 @@ export async function POST(req: NextRequest) {
         currency: result.currency || EXPECTED_CURRENCY,
         status: "COMPLETED",
       });
+
+      if (!saved) {
+        return NextResponse.json(
+          { error: "Order already processed" },
+          { status: 409 }
+        );
+      }
 
       const token = generateDownloadToken(orderID);
       return NextResponse.json({

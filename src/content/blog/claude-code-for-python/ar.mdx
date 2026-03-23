@@ -1,0 +1,297 @@
+---
+title: "Claude Code لمطوري Python"
+description: "كيف يستخدم مطورو Python مهارات Claude Code لكتابة كود أنظف وبناء خدمات FastAPI وإدارة مسارات البيانات وأتمتة الاختبارات."
+date: "2026-03-02"
+author: "SuperSkills"
+tags: ["claude code", "python", "fastapi", "django", "data science"]
+category: "حالة استخدام"
+---
+
+Python في كل مكان. تشغّل تطبيقات Django، وخدمات FastAPI المصغّرة، ومسارات البيانات، ونماذج التعلم الآلي، وسكريبتات الأتمتة، وأدوات سطر الأوامر. اللغة متعددة الاستخدامات — لكن تلك المرونة ذاتها تعني أنه من السهل كتابة Python تعمل تقنياً لكنها تفشل على نطاق واسع، أو يصعب اختبارها، أو تنكسر عندما يلمسها شخص آخر.
+
+Claude Code مع المهارات الخاصة بـPython لا يكتب Python فحسب. بل يكتبها بالطريقة التي سيكتب بها مهندس Python أول: مع تلميحات الأنواع، ومعالجة الأخطاء الصحيحة، والأنماط الاصطلاحية، وقرارات البنية المعمارية التي تتقادم بشكل جيد.
+
+## مهارات Python في مجموعة SuperSkills
+
+هذه هي مهارات Python الأساسية:
+
+**`python-pro`** — الأساس. يغطي Python الاصطلاحي: تعبيرات القوائم مقابل تعبيرات المولّدات، ومديري السياق، والـdataclasses، و`__slots__`، وتسلسلات الاستثناءات الصحيحة، والأنماط التي تجعل كود Python بيثونياً وليس وظيفياً فحسب.
+
+**`fastapi-expert`** — FastAPI من التوجيه إلى النشر: حقن التبعيات، ونماذج Pydantic، ومعالجات غير متزامنة، ومهام خلفية، والـmiddleware، وتدفقات OAuth2، وتوثيق OpenAPI. يعرف متى يستخدم `async def` ومتى يكون `def` العادي في الواقع أسرع.
+
+**`django-expert`** — عمق Django: تحسين ORM، والمديرون المخصصون، والـsignals، والـmiddleware، وواجهة الإدارة، والـviews المبنية على class مقابل المبنية على function، وDjango REST Framework، وأنماط الاختبار التي تعمل فعلاً مع test runner الخاص بـDjango.
+
+**`pytest-master`** — انضباط الاختبار: الـfixtures، والـparametrize، والـmocking مع `unittest.mock` و`pytest-mock`، وتنظيم الاختبارات، وإعداد coverage، والأنماط التي تجعل مجموعات الاختبار سريعة وقابلة للصيانة.
+
+## تلميحات الأنواع التي تساعد فعلاً
+
+نظام الأنواع في Python اختياري، مما يعني أن معظم المشاريع إما تتجاهله تماماً أو تستخدمه بشكل غير متسق. مهارة `python-pro` تجعل تعليقات الأنواع التوضيحية لـClaude مفيدة وليست زخرفية.
+
+### قبل: توقيعات غامضة
+
+```python
+def process_orders(orders, config=None):
+    results = []
+    for order in orders:
+        if validate(order, config):
+            results.append(transform(order))
+    return results
+```
+
+هذا يُترجَم ويعمل ويفعل شيئاً. لكن ماذا؟ ما هو `orders`؟ ماذا يُرجع؟ ماذا يحدث مع `config=None`؟
+
+### بعد: أنواع تُوثّق نفسها
+
+```python
+from typing import Sequence
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class ProcessingConfig:
+    validate_stock: bool = True
+    apply_discounts: bool = True
+    max_retries: int = 3
+
+def process_orders(
+    orders: Sequence[Order],
+    config: ProcessingConfig | None = None,
+) -> list[ProcessedOrder]:
+    active_config = config or ProcessingConfig()
+    return [
+        transform(order, active_config)
+        for order in orders
+        if validate(order, active_config)
+    ]
+```
+
+المهارة تصل إلى `dataclass(frozen=True)` لكائنات الإعداد (غير قابلة للتغيير، قابلة للتجزئة، قابلة للمقارنة)، وتستخدم `Sequence` بدلاً من `list` للمدخل (يقبل أي iterable)، وتُرجع `list` ملموسة لأن المستدعي يتوقع قائمة. هذه الفروق مهمة في قواعد الكود الحقيقية.
+
+## خدمات FastAPI التي تتوسع
+
+تغيّر مهارة `fastapi-expert` طريقة بناء Claude لتطبيقات FastAPI. بدلاً من ملفات مسطحة مع دوال route، تحصل على بنية تطبيق مناسبة.
+
+### حقن التبعيات للخدمات النظيفة
+
+```python
+from fastapi import FastAPI, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Annotated
+
+app = FastAPI()
+
+# تبعية قابلة لإعادة الاستخدام — نظيفة وقابلة للاختبار
+async def get_db() -> AsyncSession:
+    async with SessionLocal() as session:
+        yield session
+
+DBSession = Annotated[AsyncSession, Depends(get_db)]
+
+@app.get("/users/{user_id}", response_model=UserResponse)
+async def get_user(user_id: int, db: DBSession):
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"المستخدم {user_id} غير موجود"
+        )
+    return user
+```
+
+المهارة تعرف: استخدام `Annotated` لأنواع التبعية (نمط FastAPI 0.95+)، وثوابت `status` بدلاً من الأرقام السحرية، وإدارة جلسة async مع مديري السياق المناسبين، و`response_model` للتسلسل التلقائي ومستندات OpenAPI.
+
+### نماذج Pydantic المصنوعة بشكل صحيح
+
+```python
+from pydantic import BaseModel, EmailStr, field_validator, model_validator
+from datetime import datetime
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    username: str
+    password: str
+    birth_year: int
+
+    @field_validator("username")
+    @classmethod
+    def username_valid(cls, v: str) -> str:
+        if not v.replace("_", "").isalnum():
+            raise ValueError("يجب أن يكون اسم المستخدم أبجدياً رقمياً (الشرطات السفلية مسموح بها)")
+        if len(v) < 3:
+            raise ValueError("يجب أن يكون اسم المستخدم 3 أحرف على الأقل")
+        return v.lower()
+
+    @model_validator(mode="after")
+    def check_age(self) -> "UserCreate":
+        current_year = datetime.now().year
+        if current_year - self.birth_year < 13:
+            raise ValueError("يجب أن يكون العمر 13 سنة على الأقل")
+        return self
+```
+
+المهارة تستخدم `field_validator` و`model_validator` (أنماط Pydantic v2)، و`EmailStr` للتحقق من البريد الإلكتروني، وتوضح التحقق على مستوى الحقل وعلى مستوى النموذج — أنماط ينسخها معظم المطورين من التوثيق لكن نادراً ما يحصلون عليها بشكل صحيح من المحاولة الأولى.
+
+## سير عمل علم البيانات
+
+يميل كود علم البيانات في Python إلى أن يكون دفاتر استكشافية تحوّلت إلى سكريبتات إنتاجية — مع كل المشاكل التي يترتب على ذلك. تساعد مهارة `python-pro` Claude على كتابة كود بيانات قابل للصيانة فعلاً.
+
+### نمط Pipeline بدلاً من السكريبتات المتسلسلة
+
+```python
+from dataclasses import dataclass
+from typing import Callable
+import pandas as pd
+
+@dataclass
+class Pipeline:
+    steps: list[tuple[str, Callable[[pd.DataFrame], pd.DataFrame]]]
+
+    def run(self, df: pd.DataFrame) -> pd.DataFrame:
+        for name, step in self.steps:
+            df = step(df)
+            assert not df.empty, f"خطوة Pipeline '{name}' أنتجت DataFrame فارغاً"
+        return df
+
+def remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:
+    return df.drop_duplicates(subset=["user_id", "event_date"])
+
+def fill_missing_values(df: pd.DataFrame) -> pd.DataFrame:
+    return df.assign(
+        revenue=df["revenue"].fillna(0),
+        country=df["country"].fillna("unknown"),
+    )
+
+def add_derived_features(df: pd.DataFrame) -> pd.DataFrame:
+    return df.assign(
+        revenue_per_event=df["revenue"] / df["event_count"].clip(lower=1),
+        is_high_value=df["revenue"] > df["revenue"].quantile(0.9),
+    )
+
+pipeline = Pipeline(steps=[
+    ("remove_duplicates", remove_duplicates),
+    ("fill_missing", fill_missing_values),
+    ("feature_engineering", add_derived_features),
+])
+```
+
+كل خطوة هي دالة نقية (سهلة الاختبار)، والخطوات المسماة تساعد في التصحيح، والتأكيد يلتقط DataFrames الفارغة قبل أن تتسبب في حالات فشل صامتة في مرحلة لاحقة.
+
+## أنماط Async
+
+تفهم مهارة `fastapi-expert` دقائق Python غير المتزامنة التي تُعثر معظم المطورين.
+
+```python
+import asyncio
+import httpx
+
+# خطأ: استدعاءات async متسلسلة (تهزم الغرض)
+async def fetch_user_data_slow(user_id: int) -> dict:
+    profile = await fetch_profile(user_id)
+    orders = await fetch_orders(user_id)
+    preferences = await fetch_preferences(user_id)
+    return {"profile": profile, "orders": orders, "preferences": preferences}
+
+# صواب: استدعاءات async متزامنة مع asyncio.gather
+async def fetch_user_data_fast(user_id: int) -> dict:
+    profile, orders, preferences = await asyncio.gather(
+        fetch_profile(user_id),
+        fetch_orders(user_id),
+        fetch_preferences(user_id),
+    )
+    return {"profile": profile, "orders": orders, "preferences": preferences}
+
+# صواب: طلبات HTTP متزامنة مع تجميع الاتصالات
+async def bulk_fetch_prices(product_ids: list[int]) -> list[dict]:
+    async with httpx.AsyncClient() as client:
+        tasks = [
+            client.get(f"/api/prices/{pid}")
+            for pid in product_ids
+        ]
+        responses = await asyncio.gather(*tasks)
+        return [r.json() for r in responses if r.status_code == 200]
+```
+
+المهارة تعرف الفرق بين `async def` (تعمل في حلقة الأحداث) و`def` العادية (تُعيق)، ومتى يكون `asyncio.gather` مقابل `asyncio.TaskGroup` مناسباً، وكيفية تجميع اتصالات HTTP بشكل صحيح.
+
+## الاختبار مع pytest
+
+تنتج مهارة `pytest-master` اختبارات مفيدة فعلاً — لا مجرد اختبارات تنجح.
+
+### Fixtures وParametrize
+
+```python
+import pytest
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+
+@pytest.fixture(scope="session")
+def engine():
+    return create_async_engine("sqlite+aiosqlite:///:memory:")
+
+@pytest.fixture
+async def db(engine) -> AsyncSession:
+    async with AsyncSession(engine) as session:
+        yield session
+        await session.rollback()
+
+@pytest.fixture
+async def client(db) -> AsyncClient:
+    app.dependency_overrides[get_db] = lambda: db
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        yield client
+    app.dependency_overrides.clear()
+
+@pytest.mark.parametrize("email,expected_status", [
+    ("valid@example.com", 200),
+    ("not-an-email", 422),
+    ("", 422),
+    ("a" * 256 + "@example.com", 422),
+])
+async def test_user_creation(client, email, expected_status):
+    response = await client.post("/users", json={"email": email, "username": "testuser"})
+    assert response.status_code == expected_status
+```
+
+المهارة تستخدم `scope="session"` للمحرك (يُنشأ مرة واحدة)، وfixtures لكل اختبار مع rollback للعزل، وتجاوزات التبعية للاختبار النظيف، و`parametrize` لاختبار تنويعات متعددة للمدخلات دون تكرار الكود.
+
+## تحسين Django ORM
+
+تمنع مهارة `django-expert` مشكلة N+1 query ومشاكل الأداء الشائعة الأخرى في Django:
+
+```python
+# ساذج — N+1 استعلام (1 للطلبات + 1 لكل طلب للمستخدم)
+orders = Order.objects.filter(status="pending")
+for order in orders:
+    print(f"{order.user.email}: {order.total}")  # يضرب DB في كل مرة
+
+# مع django-expert — استعلامان إجمالاً
+orders = (
+    Order.objects
+    .select_related("user")
+    .filter(status="pending")
+    .only("total", "created_at", "user__email")
+    .order_by("-created_at")
+)
+
+# Many-to-many — prefetch_related، وليس select_related
+orders = (
+    Order.objects
+    .prefetch_related("items__product")
+    .filter(user=request.user)
+    .select_related("user", "shipping_address")
+)
+```
+
+المهارة تعرف: `select_related` لـForeignKey/OneToOne (SQL JOIN)، و`prefetch_related` لـManyToMany/FK العكسي (استعلام منفصل)، و`only()` لتجنب تحميل الحقول غير المستخدمة على الجداول الكبيرة.
+
+## البدء
+
+1. ثبّت SuperSkills في `~/.claude/skills/`
+2. افتح مشروع Python الخاص بك في Claude Code
+3. تنشط المهارات تلقائياً بناءً على imports وسياق الملفات — ينشط `fastapi-expert` عند اكتشاف imports لـFastAPI، وينشط `pytest-master` في ملفات الاختبار
+4. ابدأ البناء: "أنشئ endpoint لمصادقة المستخدم"، "اكتب اختبارات لهذه الخدمة"، "حسّن استعلام Django هذا"
+
+أول مرة يكتب فيها Claude endpoint لـFastAPI مع حقن التبعيات الصحيح، ومدققات Pydantic v2، وأنماط async، ومستندات OpenAPI دون أن يُسأل — تلك هي اللحظة التي تدرك فيها لماذا توجد المهارات.
+
+---
+
+*احصل على 106 مهارات SuperSkills بما فيها مجموعة Python الكاملة — [نزّلها بـ $50](/#pricing) واكتب Python أفضل من اليوم.*

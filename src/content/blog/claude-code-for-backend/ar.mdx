@@ -1,0 +1,315 @@
+---
+title: "Claude Code لمهندسي الخلفية"
+description: "كيف يستخدم مهندسو الخلفية مهارات Claude Code لتصميم APIs وتحسين قواعد البيانات وتنفيذ المصادقة وبناء الخدمات المصغّرة."
+date: "2026-02-28"
+author: "SuperSkills"
+tags: ["claude code", "backend", "api", "microservices", "database"]
+category: "حالة استخدام"
+---
+
+هندسة الخلفية هي المكان الذي يعيش فيه التعقيد. يمكن إعادة بناء الواجهة الأمامية في عطلة نهاية الأسبوع. تتراكم الخلفية قرارات — اختيارات الـschema، وعقود API، وتدفقات المصادقة، واستراتيجيات التخزين المؤقت — التي تتضاعف على مدار السنوات وتصبح مكلفة التغيير. الحصول على هذه القرارات بشكل صحيح من المرة الأولى ليس مجرد ممارسة جيدة؛ بل هي الطريقة التي تبقى بها الأنظمة طويلاً بما يكفي لتهم.
+
+Claude Code مع المهارات الخاصة بالخلفية لا يكتب كود خلفية يعمل فقط. بل يكتب كود خلفية مصمّماً للاستدامة: عقود واضحة، وأنماط دفاعية، وأداء من البداية، ونوع البنية المعمارية التي يمكن للفريق البناء عليها لا التحايل حولها.
+
+## مهارات الخلفية في مجموعة SuperSkills
+
+**`api-designer`** — تصميم API لـREST وGraphQL: نمذجة الموارد، ودلالات HTTP، واستراتيجيات إصدار الإصدارات، وأنماط التصفح الصفحي، وتنسيقات استجابة الأخطاء، وتحديد معدل الطلبات، والقرارات التي تجعل واجهات برمجة التطبيقات متعة لا لغزاً في التكامل.
+
+**`database-optimizer`** — أداء قاعدة البيانات: تحليل الاستعلامات، واستراتيجية الفهرسة، وتصميم الـschema، وتجميع الاتصالات، ومنع N+1، وتفسير خطة الاستعلام، والفرق بين الاستعلامات التي تبدو متشابهة لكن تؤدي بفوارق ضخمة.
+
+**`microservices-architect`** — أنماط الأنظمة الموزعة: حدود الخدمة، والتواصل بين الخدمات، والبنية المعمارية المدفوعة بالأحداث، وأنماط saga للمعاملات الموزعة، وقواطع الدائرة، والاعتبارات التشغيلية التي تجعل الخدمات المصغّرة قراراً جيداً أو كارثة.
+
+**`nestjs-expert`** — عمق NestJS: الـdecorators، وحقن التبعيات، والـguards، والـinterceptors، والـpipes، والـmodules، وتكامل TypeORM، والأنماط التي تجعل تطبيقات NestJS قابلة للصيانة مع نموها.
+
+## تصميم APIs تتقادم بشكل جيد
+
+تغيّر مهارة `api-designer` طريقة تناول Claude لتصميم endpoints. بدلاً من كتابة routes تطابق المتطلبات الحالية، تصمم APIs لها مجال للنمو.
+
+### نمذجة الموارد
+
+يبدأ تصميم API السيئ عادةً بتعيين endpoints مباشرة على جداول قاعدة البيانات. تنمذج مهارة `api-designer` الموارد حول المفاهيم التجارية بدلاً من ذلك:
+
+```
+# مدفوع بقاعدة البيانات (هش)
+GET  /user_orders_view?user_id=123
+POST /insert_order
+PUT  /update_order_status
+
+# مدفوع بالموارد (مستقر)
+GET  /users/{userId}/orders
+POST /orders
+PATCH /orders/{orderId}/status
+```
+
+النهج المدفوع بالموارد يصمد أمام إعادة هيكلة الـschema لأنه ينمذج المجال التجاري، لا التنفيذ. عندما تقسّم جدول `orders` إلى `orders` و`order_items`، لا تتغير واجهة API.
+
+### عقود استجابة الأخطاء
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "فشل التحقق من الطلب",
+    "details": [
+      {
+        "field": "email",
+        "code": "INVALID_FORMAT",
+        "message": "يجب أن يكون عنوان بريد إلكتروني صالحاً"
+      },
+      {
+        "field": "birthDate",
+        "code": "OUT_OF_RANGE",
+        "message": "يجب أن يكون قبل 13 سنة على الأقل"
+      }
+    ],
+    "requestId": "req_01HX4K2M3N"
+  }
+}
+```
+
+المهارة تعرف: يجب أن تحتوي استجابات الأخطاء على حقول `code` قابلة للقراءة الآلية (ليس فقط رسائل قابلة للقراءة البشرية)، ويجب أن تكون `details` لأخطاء التحقق على مستوى الحقل وقابلة للتنفيذ، ويتيح `requestId` ربط السجلات للتصحيح، والاتساق أهم من الكمال — يجب أن يستخدم كل endpoint نفس تنسيق الخطأ.
+
+### التصفح الصفحي بشكل صحيح
+
+```typescript
+// Offset pagination — بسيط لكن لا يتوسع
+GET /orders?page=3&limit=25
+
+// Cursor pagination — يتوسع لملايين الصفوف
+GET /orders?after=01HX4K2M3N&limit=25
+
+// الاستجابة مع cursor التالي
+{
+  "data": [...],
+  "pagination": {
+    "cursor": "01HX4K2M3N7P",
+    "hasMore": true,
+    "total": null  // cursor pagination لا يمكنه معرفة الإجمالي بتكلفة منخفضة
+  }
+}
+```
+
+تشرح مهارة `api-designer` المقايضات: offset pagination بسيط ويسمح بالانتقال لصفحات عشوائية لكنه ينكسر عند إدراج صفوف أثناء القراءة؛ cursor pagination مستقر ومتوسع لكن يفقد القدرة على الانتقال للصفحة 50.
+
+## تحسين قاعدة البيانات
+
+تعد مهارة `database-optimizer` إحدى أعلى المهارات رفعة في المجموعة. الاستعلامات السيئة مكلفة، ويصعب إيجادها، ونادراً ما تكون واضحة من الكود.
+
+### استراتيجية الفهرسة
+
+```sql
+-- الاستعلام البطيء (مسح كامل على 10 ملايين صف)
+SELECT * FROM orders
+WHERE user_id = 123
+  AND status = 'pending'
+  AND created_at > NOW() - INTERVAL '30 days'
+ORDER BY created_at DESC
+LIMIT 20;
+
+-- خطة الاستعلام تُظهر: Seq Scan, cost=0.00..450000.00
+
+-- بعد إضافة فهرس مركب
+CREATE INDEX idx_orders_user_status_date
+ON orders (user_id, status, created_at DESC)
+WHERE status IN ('pending', 'processing');  -- فهرس جزئي
+
+-- خطة الاستعلام تُظهر: Index Scan, cost=0.00..8.50
+```
+
+المهارة تعرف ترتيب أعمدة الفهرس: شروط المساواة أولاً (`user_id`، `status`)، ثم أعمدة النطاق/الفرز (`created_at`). وتعرف أيضاً الفهارس الجزئية — شرط `WHERE status IN (...)` يجعل الفهرس أصغر وأسرع لأنه يُفهرس فقط الصفوف المطابقة لتلك الحالة.
+
+### مشكلة N+1 على مستوى ORM
+
+```typescript
+// يُنشئ N+1 استعلاماً (1 للطلبات، N للمستخدمين)
+const orders = await orderRepository.find({ status: 'pending' })
+for (const order of orders) {
+  console.log(order.user.email)  // يحمّل كل مستخدم بشكل كسول
+}
+
+// مع database-optimizer: التحميل المبكر في استعلام واحد
+const orders = await orderRepository.find({
+  where: { status: 'pending' },
+  relations: ['user', 'items', 'items.product'],
+  select: {
+    id: true,
+    total: true,
+    createdAt: true,
+    user: { email: true, name: true },
+  }
+})
+```
+
+المهارة تتعرف أيضاً على متى يُنشئ `relations` مشكلة الضرب الديكارتي (تحميل many-to-many من خلال التحميل المبكر على مجموعات بيانات كبيرة) وتقترح DataLoader أو الجلب المجمّع بدلاً من ذلك.
+
+## تدفقات المصادقة
+
+المصادقة هي المكان الذي تعيش فيه أخطاء الأمان. تنفّذ مهارة `api-designer` المصادقة بشكل صحيح افتراضياً.
+
+### JWT مع تدوير Refresh Token
+
+```typescript
+// Access token: عمر قصير (15 دقيقة)
+// Refresh token: عمر طويل (7 أيام)، مخزّن في httpOnly cookie
+
+async function refreshTokens(refreshToken: string): Promise<TokenPair> {
+  const payload = verifyRefreshToken(refreshToken)
+
+  // التدوير: إبطال refresh token القديم، إصدار جديد
+  const stored = await refreshTokenRepository.findOne({
+    token: refreshToken,
+    userId: payload.sub,
+    used: false,
+  })
+
+  if (!stored) {
+    // اكتُشف إعادة استخدام token — سرقة محتملة
+    await refreshTokenRepository.invalidateAll(payload.sub)
+    throw new UnauthorizedException('اكتُشف إعادة استخدام Refresh token')
+  }
+
+  await refreshTokenRepository.markUsed(refreshToken)
+
+  const user = await userRepository.findById(payload.sub)
+  return issueTokenPair(user)
+}
+```
+
+المهارة تنفّذ تدوير refresh token (كل تحديث يُصدر refresh token جديداً يُلغي القديم)، وتكتشف سرقة token المحتملة (إذا قُدِّم token مستخدَم بالفعل مرة أخرى)، وتخزّن refresh tokens في httpOnly cookies (وليس localStorage الذي يمكن الوصول إليه عبر XSS).
+
+## بنية NestJS المعمارية
+
+تنتج مهارة `nestjs-expert` كود NestJS يستفيد استفادة كاملة من نظام حقن التبعيات في الإطار.
+
+### Guards وInterceptors
+
+```typescript
+// Guard: يتعامل مع التفويض
+@Injectable()
+export class ResourceOwnerGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest()
+    const { user, params } = request
+
+    const resourceType = this.reflector.get<string>(
+      'resourceType',
+      context.getHandler()
+    )
+
+    if (resourceType === 'order') {
+      const order = await this.orderService.findById(params.id)
+      return order.userId === user.id || user.role === 'admin'
+    }
+
+    return false
+  }
+}
+
+// Interceptor: يحوّل شكل الاستجابة
+@Injectable()
+export class WrapResponseInterceptor<T>
+  implements NestInterceptor<T, ApiResponse<T>> {
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler
+  ): Observable<ApiResponse<T>> {
+    return next.handle().pipe(
+      map(data => ({
+        data,
+        meta: {
+          timestamp: new Date().toISOString(),
+          requestId: context.switchToHttp().getRequest().id,
+        },
+      }))
+    )
+  }
+}
+```
+
+المهارة تبني guards لمنطق التفويض (منفصل عن المصادقة التي تنتمي لاستراتيجية JWT)، وتستخدم interceptors للمخاوف المتقاطعة كتغليف الاستجابة، وتستفيد من `Reflector` للتفويض المدفوع بالبيانات الوصفية.
+
+## أنماط الخدمات المصغّرة
+
+تطبّق مهارة `microservices-architect` أنماط الأنظمة الموزعة التي تمنع الأعطال الشائعة التي تجعل الخدمات المصغّرة سيئة السمعة.
+
+### نمط قاطع الدائرة
+
+```typescript
+import { CircuitBreaker } from 'opossum'
+
+const inventoryServiceCall = async (productId: string) =>
+  fetch(`${INVENTORY_URL}/products/${productId}/stock`)
+
+const breaker = new CircuitBreaker(inventoryServiceCall, {
+  timeout: 3000,                       // مهلة 3 ثوان
+  errorThresholdPercentage: 50,        // فتح بعد 50% من الأخطاء
+  resetTimeout: 30000,                 // إعادة المحاولة بعد 30 ثانية
+})
+
+breaker.fallback(() => ({
+  inStock: true,  // بديل تفاؤلي — لا تحجب الشراء
+  quantity: null, // null يشير إلى "غير معروف" للمستهلك
+}))
+
+// الاستخدام
+async function getProductDetails(productId: string) {
+  const stock = await breaker.fire(productId)
+  return { productId, stock }
+}
+```
+
+المهارة تعرف: المهلات تمنع الفشل المتسلسل، وعتبات الأخطاء تفتح القاطع قبل الفشل الكامل، وإعادة ضبط المهلات تسمح بالتعافي دون تدخل يدوي، والبدائل تحافظ على الوظائف المتدهورة بدلاً من الفشل الكامل.
+
+### التواصل المدفوع بالأحداث
+
+```typescript
+// نشر الأحداث للتوصيل الرخو
+class OrderService {
+  async createOrder(dto: CreateOrderDto): Promise<Order> {
+    const order = await this.orderRepository.save(dto)
+
+    // نشر الحدث — الخدمات الأخرى تستجيب باستقلالية
+    await this.eventBus.publish(new OrderCreatedEvent({
+      orderId: order.id,
+      userId: order.userId,
+      items: order.items,
+      total: order.total,
+      timestamp: new Date(),
+    }))
+
+    return order
+  }
+}
+
+// المستهلكون يتعاملون مع مخاوفهم الخاصة
+class InventoryService {
+  @EventsHandler(OrderCreatedEvent)
+  async onOrderCreated(event: OrderCreatedEvent): Promise<void> {
+    await this.reserveInventory(event.items)
+  }
+}
+
+class NotificationService {
+  @EventsHandler(OrderCreatedEvent)
+  async onOrderCreated(event: OrderCreatedEvent): Promise<void> {
+    await this.sendConfirmationEmail(event.userId, event.orderId)
+  }
+}
+```
+
+تفصل الأحداث الخدمات: `OrderService` لا يعرف عن المخزون أو الإشعارات. يمكن إضافة مستهلكين جدد دون تعديل الناشر. هذا هو النمط الذي يجعل الخدمات المصغّرة قابلة للتوسع فعلاً.
+
+## البدء
+
+1. ثبّت SuperSkills في `~/.claude/skills/`
+2. افتح مشروع الخلفية الخاص بك في Claude Code
+3. تنشط المهارات بناءً على سياق الملفات — `database-optimizer` عند اكتشاف كود SQL أو ORM، و`api-designer` لتعريفات routes
+4. ابدأ البناء: "صمّم API لمنتج SaaS متعدد المستأجرين"، "أضف تخزيناً مؤقتاً لهذا الـendpoint"، "نفّذ مصادقة JWT مع refresh tokens"
+
+أول مرة يصمّم فيها Claude API مع إصدار إصدارات صحيح وتصفح صفحي وعقود أخطاء وتحديد معدل من وصف واحد — تلك هي اللحظة التي يبدأ فيها عمل الخلفية بالشعور أنه يتحرك بسرعة مختلفة.
+
+---
+
+*احصل على 106 مهارات SuperSkills بما فيها مجموعة هندسة الخلفية الكاملة — [نزّلها بـ $50](/#pricing) وابنِ خلفيات أفضل من اليوم.*

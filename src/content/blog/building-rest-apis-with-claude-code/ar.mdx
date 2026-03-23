@@ -1,0 +1,239 @@
+---
+title: "بناء واجهات REST API مع Claude Code: دليل عملي"
+description: "دليل خطوة بخطوة لبناء واجهات REST API جاهزة للإنتاج باستخدام Claude Code — من تصميم المخطط إلى المصادقة إلى النشر."
+date: "2026-02-06"
+author: "SuperSkills"
+tags: ["rest api", "claude code", "تطوير api", "دليل"]
+category: "Tutorial"
+---
+
+بناء واجهة REST API تعمل أمر سهل. بناء واجهة جاهزة للإنتاج — مع مصادقة صحيحة وتحقق ومعالجة أخطاء وترقيم صفحات وتوثيق — يستلزم خبرة. مهارة `api-designer` تمنح Claude تلك الخبرة، مما يتيح لك بناء واجهات API يريد المطورون فعلاً استخدامها.
+
+هذا الدليل يرشدك عبر العملية الكاملة لبناء واجهة REST API جاهزة للإنتاج مع Claude Code.
+
+---
+
+## ابدأ بنمذجة الموارد
+
+أكبر خطأ في تصميم الواجهة هو القفز مباشرة إلى المسارات. المسارات هي سطح واجهتك — الموارد هي الأساس.
+
+ابدأ بوصف نطاقك لـClaude:
+
+```
+"أنا أبني واجهة API للتجارة الإلكترونية. الكيانات الرئيسية هي:
+- المنتجات (الاسم، الوصف، السعر، المخزون، الفئة)
+- المستخدمون (الاسم، البريد الإلكتروني، الدور)
+- الطلبات (المستخدم، العناصر، الحالة، الإجمالي)
+- المراجعات (المستخدم، المنتج، التقييم، النص)"
+```
+
+سيقوم Claude بنمذجة العلاقات، واقتراح الموارد ذات المستوى الأعلى مقابل المتداخلة، وتحديد العمليات التي يحتاجها كل مورد. ستحصل على خريطة موارد قبل كتابة أي مسار.
+
+---
+
+## مبادئ تصميم المسارات
+
+المسارات الجيدة يمكن التنبؤ بها. أي شخص يعرف REST يمكنه استخدام واجهتك دون قراءة التوثيق للعمليات الأساسية. مهارة `api-designer` تفرض هذه الاتفاقيات:
+
+**تسمية الموارد:**
+```
+GET    /products           # قائمة
+GET    /products/:id       # الحصول على واحد
+POST   /products           # إنشاء
+PUT    /products/:id       # استبدال
+PATCH  /products/:id       # تحديث جزئي
+DELETE /products/:id       # حذف
+```
+
+**الموارد المتداخلة (مستوى واحد فقط):**
+```
+GET    /products/:id/reviews    # مراجعات منتج
+POST   /products/:id/reviews    # إضافة مراجعة
+```
+
+أخبر Claude بكياناتك وسيولد خريطة مسارات كاملة باتباع هذه الاتفاقيات، بما في ذلك طرق HTTP المناسبة لكل عملية.
+
+---
+
+## التحقق مع Zod
+
+التحقق هو خط دفاعك الأول. كل مدخل لواجهتك يجب التحقق منه قبل أن يلمس منطق أعمالك أو قاعدة بياناتك. Zod يجعل هذا نظيفاً وآمناً من حيث الأنواع.
+
+اطلب من Claude توليد مخططات Zod لمواردك:
+
+```
+"ولّد مخططات تحقق Zod لإنشاء وتحديث منتج.
+تضمين: الاسم (مطلوب، 3-100 حرف)، السعر (رقم موجب)،
+المخزون (عدد صحيح غير سالب)، الفئة (enum من الفئات المحددة)."
+```
+
+```typescript
+const createProductSchema = z.object({
+  name: z.string().min(3).max(100),
+  description: z.string().max(2000).optional(),
+  price: z.number().positive(),
+  stock: z.number().int().nonnegative(),
+  category: z.enum(['electronics', 'clothing', 'food', 'books', 'other']),
+});
+
+const updateProductSchema = createProductSchema.partial();
+```
+
+هذا النمط يمنحك أجسام طلبات آمنة الأنواع في جميع معالجاتك، ورسائل خطأ تلقائية تخبر العميل بالضبط ما الخطأ، ومصدراً واحداً للحقيقة لقواعد التحقق.
+
+---
+
+## المصادقة مع JWT
+
+معظم الواجهات تحتاج مصادقة. JWT (JSON Web Tokens) هو المعيار للمصادقة عديمة الحالة في واجهات REST. Claude مع `api-designer` ينفذ هذا بشكل صحيح — بما في ذلك تجديد الرمز وانتهاء الصلاحية المناسب وإرشادات التخزين الآمن.
+
+**تدفق المصادقة:**
+
+```typescript
+// نقطة نهاية تسجيل الدخول
+router.post('/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user || !await bcrypt.compare(password, user.passwordHash)) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const accessToken = jwt.sign(
+    { userId: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '15m' }
+  );
+
+  // خزّن رمز التحديث في httpOnly cookie (ليس localStorage)
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+
+  res.json({ accessToken });
+});
+```
+
+اطلب من Claude توليد تدفق المصادقة الكامل: تسجيل الدخول، تدوير رمز التحديث، تسجيل الخروج، والبرنامج الوسيط للمصادقة الذي يحمي مساراتك.
+
+---
+
+## معالجة الأخطاء
+
+استجابات الأخطاء المتسقة تجعل واجهتك أسهل بكثير في الاستخدام. كل خطأ يجب أن يكون بنفس الشكل حتى يتمكن العملاء من معالجتها بشكل موحد.
+
+```typescript
+// معالج الأخطاء المركزي (Express)
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      error: err.message,
+      code: err.code,
+    });
+  }
+
+  console.error(err);
+  res.status(500).json({
+    error: 'Internal server error',
+    code: 'INTERNAL_ERROR',
+  });
+});
+```
+
+أخبر Claude "نفّذ معالجة الأخطاء المركزية مع فئات الأخطاء المكتوبة" وسيولد الإعداد الكامل بما في ذلك برنامج وسيط معالجة الأخطاء غير المتزامنة.
+
+---
+
+## الترقيم
+
+أي نقطة نهاية تعيد قائمة تحتاج ترقيم صفحات. هناك نهجان رئيسيان ومهارة `api-designer` تعرف متى تستخدم كل منهما:
+
+**ترقيم الإزاحة** (بسيط، جيد للبيانات الصغيرة):
+```typescript
+router.get('/products', async (req, res) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+  const offset = (page - 1) * limit;
+
+  const [items, total] = await Promise.all([
+    Product.findAll({ limit, offset }),
+    Product.count(),
+  ]);
+
+  res.json({
+    data: items,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  });
+});
+```
+
+**ترقيم المؤشر** (أفضل للبيانات الكبيرة، البيانات في الوقت الفعلي).
+
+اسأل Claude أي نهج مناسب لحالتك وسيشرح المقايضات وينفذ الصحيح.
+
+---
+
+## تحديد المعدل
+
+احمِ واجهتك من الإساءة بتحديد المعدل:
+
+```typescript
+import rateLimit from 'express-rate-limit';
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Too many requests',
+      code: 'RATE_LIMIT_EXCEEDED',
+    });
+  },
+});
+
+// حدود أكثر صرامة لنقاط المصادقة
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  skipSuccessfulRequests: true,
+});
+```
+
+---
+
+## توثيق OpenAPI
+
+التوثيق الجيد جزء من الواجهة الجيدة. يمكن لمهارة `api-designer` توليد مواصفات OpenAPI من تعريفات المسارات:
+
+```
+"ولّد توثيق OpenAPI 3.0 لمسارات المنتجات التي بنيناها للتو،
+بما في ذلك مخططات الطلب/الاستجابة، ومتطلبات المصادقة، وقيم المثال."
+```
+
+---
+
+## قائمة تحقق الإنتاج
+
+قبل شحن واجهتك، اطلب من Claude مراجعتها مقابل هذه القائمة:
+
+- جميع المدخلات محققة مع Zod
+- المصادقة على جميع المسارات المحمية
+- فحوصات التفويض
+- تحديد المعدل على جميع نقاط النهاية
+- CORS مهيأ لنطاقات الواجهة الأمامية
+- Helmet.js لرؤوس الأمان
+- التسجيل المنظم
+- نقطة نهاية فحص الصحة في `/health`
+- توثيق OpenAPI محدّث
+
+---
+
+## ابنِ واجهات API تحبها الفرق
+
+الفرق بين واجهة API يكرهها المطورون وأخرى يحبونها هو الاتساق وإمكانية التنبؤ. مهارة `api-designer` تفرض الأنماط التي تجعل واجهات API قابلة للتنبؤ — حتى يتمكن المطورون الذين يستخدمون واجهتك من التركيز على بناء الميزات، وليس معرفة اتفاقياتك.
+
+مهارة `api-designer` جزء من مكتبة SuperSkills — 106 مهارة تغطي كل طبقة من تطوير البرمجيات الحديثة.
+
+**مستعد لبناء واجهات API أفضل بشكل أسرع؟** اطلع على جميع 106 مهارة في [/#pricing](/#pricing).

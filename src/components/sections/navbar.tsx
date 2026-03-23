@@ -6,16 +6,19 @@ import { Menu, X } from "lucide-react";
 import { ClaudeLogo } from "@/components/claude-logo";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useI18n } from "@/lib/i18n/context";
+import { useCheckout } from "@/lib/use-checkout";
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const { t } = useI18n();
+  const { checkout } = useCheckout();
 
   const navLinks = [
     { label: t("nav.skills"), href: "#skills" },
     { label: t("nav.howItWorks"), href: "#how-it-works" },
     { label: t("nav.pricing"), href: "#pricing" },
     { label: t("nav.faq"), href: "#faq" },
+    { label: "Blog", href: "/blog" },
   ];
 
   return (
@@ -41,12 +44,12 @@ export function Navbar() {
 
           <div className="hidden md:flex items-center gap-3">
             <LanguageSwitcher />
-            <a
-              href="#pricing"
+            <button
+              onClick={checkout}
               className="bg-white text-black px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors cursor-pointer"
             >
               {t("nav.cta")}
-            </a>
+            </button>
           </div>
 
           <div className="flex md:hidden items-center gap-2">
@@ -81,13 +84,12 @@ export function Navbar() {
                   {link.label}
                 </a>
               ))}
-              <a
-                href="#pricing"
-                onClick={() => setOpen(false)}
-                className="block bg-white text-black px-5 py-2.5 rounded-lg text-sm font-medium text-center mt-3 cursor-pointer"
+              <button
+                onClick={() => { setOpen(false); checkout(); }}
+                className="block w-full bg-white text-black px-5 py-2.5 rounded-lg text-sm font-medium text-center mt-3 cursor-pointer"
               >
                 {t("nav.cta")}
-              </a>
+              </button>
             </div>
           </motion.div>
         )}

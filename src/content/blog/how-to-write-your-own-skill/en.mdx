@@ -1,0 +1,369 @@
+---
+title: "How to Write Your Own Claude Code Skill"
+description: "Learn how to create custom Claude Code skills — from basic structure to advanced patterns, with real examples you can copy and adapt."
+date: "2026-03-14"
+author: "SuperSkills"
+tags: ["claude code", "custom skills", "tutorial", "create skill"]
+category: "Tutorial"
+---
+
+You've installed a few Claude Code skills and seen how they transform your workflow. Now you're wondering: can I write my own? Absolutely — and it's simpler than you might think.
+
+This guide walks you through everything: skill file structure, where to save them, naming conventions, writing rules that actually work, and advanced patterns for when you need more control.
+
+## Skill File Structure
+
+A skill is a Markdown file with two parts: frontmatter metadata and body content.
+
+```markdown
+---
+name: my-skill-name
+description: Use when doing X with Y technology
+triggers:
+  - keywords: ["keyword1", "keyword2"]
+  - fileTypes: [".ext"]
+version: "1.0"
+author: "Your Name"
+---
+
+## Rules
+
+- Rule one
+- Rule two
+
+## Patterns
+
+Code examples or structured guidance here.
+```
+
+The frontmatter is YAML between `---` markers. The body is plain Markdown — headings, bullet lists, code blocks, anything Claude can read.
+
+### Frontmatter Fields
+
+| Field | Required | Purpose |
+|-------|----------|---------|
+| `name` | Yes | Unique identifier for the skill |
+| `description` | Yes | Tells Claude when to apply this skill |
+| `triggers` | Recommended | Keywords and file types that activate the skill |
+| `version` | Optional | Track changes over time |
+| `author` | Optional | Attribution |
+
+The `description` field is more important than it looks. Claude uses it to decide whether this skill is relevant for a given task. Write it as a clear "Use when..." sentence.
+
+## Where to Save Skills
+
+All skills live in `~/.claude/skills/`. Claude Code scans this directory at startup and loads all `.md` files it finds.
+
+```bash
+~/.claude/skills/
+├── react-expert.md
+├── typescript-pro.md
+├── devops-engineer.md
+└── my-custom-skill.md   # your new skill
+```
+
+You can organize skills into subdirectories — Claude Code searches recursively:
+
+```bash
+~/.claude/skills/
+├── frontend/
+│   ├── react-expert.md
+│   └── vue-expert.md
+└── backend/
+    ├── fastapi-expert.md
+    └── go-developer.md
+```
+
+After adding a skill, restart Claude Code and it's live. No configuration needed.
+
+## Naming Conventions
+
+Good skill names follow a simple pattern: `domain-role.md` or `technology-specialty.md`.
+
+**Good names:**
+- `react-expert.md`
+- `sql-optimizer.md`
+- `code-reviewer.md`
+- `api-designer.md`
+
+**Avoid:**
+- `my-stuff.md` (too vague)
+- `reactNextjsTypescriptFrontendMaster.md` (too broad, bad casing)
+- `skill1.md` (meaningless)
+
+The name also serves as the identifier when skills are referenced in conversation, so make it readable and descriptive.
+
+## Writing Effective Rules
+
+The body of your skill is where the real value lives. Here's how to write rules that actually change Claude's behavior.
+
+### Be Specific, Not General
+
+Vague rules produce vague results.
+
+**Weak:** "Write good TypeScript code."
+
+**Strong:**
+```markdown
+## Rules
+
+- Always enable strict mode (`"strict": true` in tsconfig)
+- Use `unknown` instead of `any` — never use `any` unless interfacing with untyped external APIs
+- Prefer `type` over `interface` for union types and mapped types
+- Use branded types for IDs: `type UserId = string & { readonly __brand: 'UserId' }`
+- Return `Result<T, E>` tuples for error-prone operations instead of throwing
+```
+
+### Give Context, Not Just Commands
+
+Explain the *why* behind rules. Claude reasons better with context.
+
+```markdown
+## State Management
+
+Use Zustand for global state, React Query for server state. Keep them separate.
+
+**Reasoning:** React Query handles caching, refetching, and synchronization
+automatically — don't replicate this with Zustand. Zustand is for UI state
+(modals, sidebar, theme) that doesn't come from the server.
+
+**Pattern:**
+- Server data → React Query (`useQuery`, `useMutation`)
+- UI state → Zustand store
+- Component state → `useState` (don't hoist unless needed)
+```
+
+### Include Anti-Patterns
+
+Tell Claude what NOT to do. This is often more useful than rules about what to do.
+
+```markdown
+## Anti-Patterns — Never Do These
+
+- Never use `useEffect` to sync state derived from other state — use `useMemo`
+- Never call `setState` in a loop — batch updates or use reducers
+- Never put async logic directly in event handlers — extract to custom hooks
+- Never ignore ESLint warnings — fix them or explicitly disable with a comment explaining why
+```
+
+## Testing Your Skill
+
+Before relying on a skill for real work, test it:
+
+1. **Start a fresh Claude Code session** after saving your skill file
+2. **Ask for a task** in the skill's domain — e.g., "Build a user authentication component"
+3. **Check if Claude follows your rules** — look for the patterns you specified
+4. **Iterate** — if Claude misses something, make the rule more specific or add an example
+
+A useful test: ask Claude to "describe the rules you're following for this task" — it will summarize which skills it loaded and what instructions it's applying.
+
+## Complete Skill Example 1: API Designer
+
+```markdown
+---
+name: api-designer
+description: Use when designing or reviewing REST APIs, defining endpoints, writing OpenAPI specs
+triggers:
+  - keywords: ["api", "endpoint", "rest", "openapi", "swagger"]
+  - fileTypes: [".yaml", ".json"]
+version: "1.0"
+---
+
+## REST API Design Rules
+
+- Use nouns for resources, not verbs: `/users` not `/getUsers`
+- Use plural resource names: `/orders` not `/order`
+- Nest resources max 2 levels deep: `/users/{id}/orders` is fine, deeper is not
+- Use HTTP methods correctly: GET (read), POST (create), PUT (replace), PATCH (update), DELETE (remove)
+- Return appropriate status codes: 200 (ok), 201 (created), 204 (no content), 400 (bad request), 401 (unauthorized), 403 (forbidden), 404 (not found), 422 (validation error), 500 (server error)
+
+## Response Format
+
+Always use this envelope for list responses:
+```json
+{
+  "data": [...],
+  "meta": {
+    "total": 100,
+    "page": 1,
+    "perPage": 20
+  }
+}
+```
+
+For single resource: return the object directly, no envelope.
+For errors: `{ "error": { "code": "VALIDATION_ERROR", "message": "...", "fields": {...} } }`
+
+## Versioning
+
+- Version in the URL path: `/api/v1/users`
+- Never remove fields in a minor version — add only
+- Document breaking changes in CHANGELOG
+```
+
+## Complete Skill Example 2: Code Reviewer
+
+```markdown
+---
+name: code-reviewer
+description: Use when reviewing code, providing feedback on pull requests, or auditing existing code
+triggers:
+  - keywords: ["review", "pr", "pull request", "audit", "feedback", "check this code"]
+version: "1.0"
+---
+
+## Review Checklist
+
+Always check these in order:
+
+### 1. Correctness
+- Does the code do what it claims to do?
+- Are edge cases handled (null, empty, overflow, concurrent access)?
+- Are errors caught and handled appropriately?
+
+### 2. Security
+- Is user input validated and sanitized?
+- Are there any SQL injection, XSS, or path traversal risks?
+- Are secrets hardcoded anywhere?
+
+### 3. Performance
+- Are there N+1 query problems?
+- Are heavy operations cached or debounced?
+- Are large datasets paginated?
+
+### 4. Readability
+- Are variable and function names clear?
+- Is complex logic explained with comments?
+- Is the function doing one thing?
+
+## Feedback Tone
+
+- Start with what's good before listing issues
+- Be specific: "This loop runs O(n²) because..." not "this is slow"
+- Provide the fix, not just the problem
+- Categorize feedback: [BLOCKER], [SUGGESTION], [NITPICK]
+```
+
+## Complete Skill Example 3: Database Optimizer
+
+```markdown
+---
+name: sql-optimizer
+description: Use when writing SQL queries, designing schemas, or optimizing database performance
+triggers:
+  - keywords: ["sql", "query", "database", "postgres", "mysql", "index", "schema"]
+  - fileTypes: [".sql"]
+version: "1.0"
+---
+
+## Query Rules
+
+- Always use explicit column names in SELECT — never `SELECT *` in production code
+- Use parameterized queries — never string concatenation for user input
+- Add EXPLAIN ANALYZE before suggesting any query as optimal
+- Use CTEs (WITH clauses) for complex queries — more readable than nested subqueries
+
+## Indexing Strategy
+
+Create indexes for:
+- All foreign keys
+- Columns used in WHERE clauses that filter large tables
+- Columns used in ORDER BY on large result sets
+- Composite indexes when multiple columns are always queried together
+
+Don't over-index: each index slows down INSERT/UPDATE/DELETE. Profile first.
+
+## Schema Design
+
+- Use UUIDs for public-facing IDs (prevents enumeration attacks)
+- Use serial/bigserial for internal join keys (faster)
+- Add `created_at` and `updated_at` timestamps to every table
+- Use CHECK constraints to enforce business rules at the DB level
+- Prefer soft deletes (`deleted_at`) for auditable data
+```
+
+## Advanced Patterns
+
+### Conditional Sections
+
+You can structure your skill with conditional guidance using clear headings:
+
+```markdown
+## When Working with Next.js App Router
+
+- Use Server Components by default
+- Only add `"use client"` when you need interactivity or browser APIs
+- Co-locate page-specific components in the route directory
+
+## When Working with Next.js Pages Router
+
+- Use `getServerSideProps` only when you need request-time data
+- Prefer `getStaticProps` with `revalidate` for most pages
+- Use API routes for backend logic
+```
+
+Claude will apply whichever section matches the actual context of your task.
+
+### Including Code Templates
+
+Put boilerplate directly in your skill so Claude uses it as a starting point:
+
+```markdown
+## Component Template
+
+Always start new React components from this template:
+
+```tsx
+import type { FC } from 'react'
+
+interface Props {
+  // define props here
+}
+
+const ComponentName: FC<Props> = ({ }) => {
+  return (
+    <div>
+      {/* content */}
+    </div>
+  )
+}
+
+export default ComponentName
+```
+```
+
+### Referencing Other Skills
+
+If your skill builds on another, mention it explicitly:
+
+```markdown
+## Note
+
+This skill extends `typescript-pro`. All TypeScript rules from that skill apply here.
+This skill adds Next.js-specific patterns on top.
+```
+
+## Common Mistakes to Avoid
+
+**Too broad:** A skill covering 10 different domains will dilute its effectiveness. Keep each skill focused.
+
+**No examples:** Rules without code examples leave room for ambiguity. Show exactly what you mean.
+
+**Outdated patterns:** If your skill references an API that changed, Claude may still follow the skill. Revisit and update skills periodically.
+
+**Conflicting rules:** If two loaded skills give contradictory advice, Claude will try to reconcile them — often unpredictably. Design skills to be composable.
+
+## Your First Skill in 10 Minutes
+
+1. Open `~/.claude/skills/my-first-skill.md`
+2. Add frontmatter with a clear name and description
+3. Write 5-10 specific rules you care about
+4. Add one complete code example
+5. Save, restart Claude Code
+6. Test with a real task
+
+Start small. A focused 20-line skill beats a sprawling 200-line one. Once it works well, expand it.
+
+---
+
+*Want 106 battle-tested skills instead of writing them from scratch? [Get SuperSkills for $50](/pricing) — every skill professionally crafted and ready to use.*

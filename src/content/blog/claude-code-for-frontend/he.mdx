@@ -1,0 +1,277 @@
+---
+title: "Claude Code למפתחי פרונטאנד"
+description: "איך מפתחי פרונטאנד משתמשים בסקילי Claude Code לבניית אפליקציות React, Next.js ו-Vue טובות יותר עם מומחיות מבוססת AI."
+date: "2026-03-10"
+author: "SuperSkills"
+tags: ["claude code", "פרונטאנד", "react", "nextjs", "vue"]
+category: "שימוש"
+---
+
+פיתוח פרונטאנד לא נע מהר יותר מאי פעם. React Server Components, Next.js App Router, Vue Composition API, TypeScript 5, Tailwind v4 — האקוסיסטם משתנה כל כמה חודשים, ולהתעדכן תוך כדי שיפינג אמיתי הוא אתגר רציני.
+
+Claude Code עם הסקילים הנכונים לא רק משלים קוד. הוא מנמק עם ידע ספציפי לפריימוורק, מיישם best practices עדכניות, ותופס את סוגי הטעויות שמופיעות רק בזמן ריצה או תחת עומס.
+
+## סקילי פרונטאנד באוסף SuperSkills
+
+הסקילים הבאים מהווים את ערכת הכלים המרכזית לפרונטאנד:
+
+**`react-expert`** — תבניות React 18+: Server Components, Suspense, תכונות concurrent, תבניות hook נכונות וטכניקות אופטימיזציה לביצועים.
+
+**`nextjs-developer`** — מומחיות Next.js App Router: החלטות server לעומת client component, תבניות data fetching, metadata API, route handlers ואופטימיזציה לפריסה.
+
+**`vue-expert`** — שליטה ב-Vue 3 Composition API: `<script setup>`, composables, Pinia, תבניות Vue Router ו-best practices לביצועים.
+
+**`typescript-pro`** — TypeScript מתקדם: strict mode, generics, discriminated unions, type guards, utility types ותבניות שהופכות את TypeScript לשימושי באמת ולא סתם מעצבן.
+
+**`ui-ux-pro-max`** — סקיל מימוש עיצוב: ריווח, טיפוגרפיה, נגישות, תבניות responsive, עקרונות אנימציה והפיכת עיצובים לממשקים באיכות ייצור.
+
+**`playwright-tester`** — בדיקות end-to-end עם Playwright: ארכיטקטורת בדיקות, אסטרטגיות selector, mocking רשת, רגרסיה ויזואלית ואינטגרציה עם CI.
+
+כל סקיל מופעל אוטומטית כשClaude Code מזהה את ההקשר הרלוונטי — אין צורך בהפעלה ידנית.
+
+## בניית רכיבים מהר יותר
+
+ההטבה המיידית ביותר היא איכות הרכיב בניסיון הראשון. ללא סקיל פרונטאנד, Claude כותב קוד פונקציונלי. עם `react-expert` פעיל, הוא כותב קוד אידיומטי ובעל ביצועים גבוהים עם התבניות הנכונות מהתחלה.
+
+### דוגמה: רכיב טבלת נתונים
+
+ללא סקילים, בקשת טבלת נתונים מחזירה מימוש ישיר: רכיב שמביא נתונים ב-`useEffect`, מאחסן אותם ב-`useState`, מרנדר טבלה, אולי מטפל בטעינה עם דגל boolean.
+
+עם סקילי `react-expert` ו-`nextjs-developer` פעילים, אותה בקשה מחזירה:
+
+```tsx
+// app/users/page.tsx — Server Component כברירת מחדל
+import { Suspense } from 'react'
+import { UserTable } from './user-table'
+import { UserTableSkeleton } from './user-table-skeleton'
+
+export default function UsersPage() {
+  return (
+    <Suspense fallback={<UserTableSkeleton />}>
+      <UserTable />
+    </Suspense>
+  )
+}
+```
+
+```tsx
+// app/users/user-table.tsx — async Server Component
+import { getUsers } from '@/lib/data'
+
+export async function UserTable() {
+  const users = await getUsers() // async/await ישיר, ללא useEffect
+
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">שם</th>
+          <th scope="col">אימייל</th>
+          <th scope="col">תפקיד</th>
+        </tr>
+      </thead>
+      <tbody>
+        {users.map((user) => (
+          <tr key={user.id}>
+            <td>{user.name}</td>
+            <td>{user.email}</td>
+            <td>{user.role}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+```
+
+הסקיל ידע: להשתמש ב-Server Component לdata fetching (ללא waterfall בצד הלקוח), לעטוף ב-Suspense עם skeleton לstreaming, להשתמש ב-`scope="col"` על headers לנגישות, ולהביא נתונים עם async/await ישיר במקום hooks.
+
+זה לא קסם — זה מה שמפתח Next.js בכיר היה כותב. הסקיל מקדד את הידע הזה.
+
+## ניהול State נכון
+
+החלטות ניהול state הן אחת ממקורות המורכבות הגדולים ביותר באפליקציות פרונטאנד. סקיל `react-expert` מקדד הנחיות ברורות על לאיזה כלי שייך לאן.
+
+בקשו מ-Claude "הוסף פונקציונליות עגלה לאפליקציית e-commerce הזו" ועם הסקיל פעיל, תקבלו:
+
+- **React Query** לנתוני מוצרים, אימות עגלה ו-mutations של checkout — כי אלה כוללים סנכרון עם שרת
+- **Zustand** ל-UI state של עגלה (מגירה פתוחה/סגורה, עדכונים אופטימיסטיים) — כי זה local UI state
+- **URL state** לפילטרים וחיפוש — כי זה ניתן לשיתוף ועמיד
+- **`useState`** לקלטי טפסים בודדים — כי הטווח הזה לא צריך להיות גלובלי
+
+ללא הסקיל, Claude עלול לפנות ל-Redux store גלובלי יחיד לכל דבר, או לשים נתוני שרת ב-`useState` ללא caching, או להעלות state מיותר. הסקיל מונע טעויות ארכיטקטוניות אלה לפני שהן קורות.
+
+## עיצוב Responsive ו-Tailwind
+
+סקיל `ui-ux-pro-max` משנה את האופן שבו Claude מטפל בעיצוב responsive. במקום להוסיף breakpoints כמחשבה שנייה, הסקיל אוכף חשיבה mobile-first:
+
+```tsx
+// ללא סקיל — desktop-first עם breakpoint overrides
+<div className="grid grid-cols-3 md:grid-cols-2 sm:grid-cols-1">
+
+// עם ui-ux-pro-max — mobile-first, סקאלת ריווח נכונה
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+```
+
+הסקיל גם תופס טעויות עיצוב נפוצות:
+- טקסט קטן מדי במובייל (מתחת ל-16px בסיסי)
+- אזורי מגע קטנים מדי (מתחת ל-44x44px)
+- סגנונות focus חסרים לניווט מקלדת
+- יחסי ניגודיות צבע שנכשלים ב-WCAG AA
+- תמונות ללא טקסט `alt` או תמונות דקורטיביות ללא `alt=""`
+
+אלה לא נתפסות על ידי TypeScript או ESLint — הן דורשות ידע עיצוב. הסקיל מספק את זה.
+
+## נגישות כברירת מחדל
+
+סקיל `ui-ux-pro-max` הופך את Claude למודע לנגישות על פני כל הרכיבים. כשאתם מבקשים רכיב modal, אתם מקבלים כזה שמבצע:
+
+- לוכד focus בתוך ה-modal כשהוא פתוח
+- מחזיר focus לאלמנט ה-trigger בסגירה
+- מגיב למקש Escape
+- כולל `role="dialog"` ו-`aria-modal="true"`
+- כולל כותרת עם label דרך `aria-labelledby`
+- מונע scroll של body כשהוא פתוח
+
+כשאתם מבקשים תפריט dropdown, אתם מקבלים תבניות ARIA ל-`role="menu"` עם ניווט מקלדת (מקשי חצים, Home, End, חיפוש תווים).
+
+כשאתם מבקשים טופס, אתם מקבלים אלמנטי `<label>` מתאימים הקשורים לinputs, הודעות שגיאה המקושרות דרך `aria-describedby`, ושדות חובה המסומנים עם `aria-required`.
+
+זו ההבדל בין קוד שנראה נגיש לקוד שבאמת הוא.
+
+## תבניות TypeScript שמתרחבות
+
+סקיל `typescript-pro` משנה את האופן שבו Claude משתמש ב-TypeScript. הוא עובר מעבר להערות type בסיסיות לתבניות שמונעות קטגוריות שלמות של bugs.
+
+### Discriminated Unions ל-API State
+
+```typescript
+// ללא סקיל — דגלים boolean שבירים
+interface FetchState {
+  data: User[] | null
+  loading: boolean
+  error: string | null
+}
+
+// עם typescript-pro — ממצה ובטוח מבחינת type
+type FetchState<T> =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; data: T }
+  | { status: 'error'; error: Error }
+
+// המהדר אוכף טיפול ממצה
+function render(state: FetchState<User[]>) {
+  switch (state.status) {
+    case 'idle': return <EmptyState />
+    case 'loading': return <Skeleton />
+    case 'success': return <UserList users={state.data} />
+    case 'error': return <ErrorMessage error={state.error} />
+  }
+}
+```
+
+### Branded Types לבטיחות
+
+```typescript
+// ללא סקיל — קל לבלבל IDs
+function getUser(userId: string) { ... }
+function getPost(postId: string) { ... }
+getUser(postId) // TypeScript מאפשר זאת — לא צריך
+
+// עם typescript-pro — מניעה בזמן קומפילציה
+type UserId = string & { readonly __brand: 'UserId' }
+type PostId = string & { readonly __brand: 'PostId' }
+
+function getUser(userId: UserId) { ... }
+function getPost(postId: PostId) { ... }
+getUser(postId) // שגיאת TypeScript — התנהגות נכונה
+```
+
+תבניות אלה לא רק תופסות bugs בזמן פיתוח — הן הופכות את ה-codebase לתיעוד עצמי.
+
+## בדיקות עם Playwright
+
+סקיל `playwright-tester` הופך את בדיקות E2E של Claude לאמינות באמת. בעיות נפוצות עם בדיקות Playwright שנוצרות על ידי AI: selectors שבירים, waits חסרים, ללא טיפול בשגיאות, בדיקות שעוברות ב-CI אך נכשלות מקומית (או להיפך).
+
+עם הסקיל, Claude כותב בדיקות ש:
+
+```typescript
+// selectors יציבים באמצעות תפקידי ARIA ו-test IDs
+await page.getByRole('button', { name: 'הוסף לעגלה' }).click()
+await page.getByTestId('cart-drawer').waitFor({ state: 'visible' })
+await expect(page.getByRole('status')).toContainText('פריט 1')
+
+// mocking רשת לבדיקות אמינות
+await page.route('**/api/products', route =>
+  route.fulfill({
+    status: 200,
+    body: JSON.stringify(mockProducts)
+  })
+)
+
+// ניקוי ובידוד נכון
+test.beforeEach(async ({ page }) => {
+  await page.goto('/shop')
+  await page.evaluate(() => localStorage.clear())
+})
+```
+
+הסקיל יודע להשתמש ב-`getByRole` מעל CSS selectors, להשתמש ב-`waitFor` במקום `sleep` שרירותי, לעשות mock לבקשות רשת לבדיקות דטרמיניסטיות, ולבודד state בין בדיקות.
+
+## Vue 3 עם סקיל `vue-expert`
+
+מפתחי Vue מקבלים את אותה שיפור איכות. סקיל `vue-expert` מבטיח ש-Claude כותב קוד Vue 3 מודרני:
+
+```vue
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useUserStore } from '@/stores/user'
+import type { User } from '@/types'
+
+// תבנית composable במקום options API mixins
+const { users, fetchUsers, isLoading } = useUsers()
+
+// computed לstate נגזר, לא data
+const activeUsers = computed(() =>
+  users.value.filter(u => u.status === 'active')
+)
+
+onMounted(fetchUsers)
+</script>
+
+<template>
+  <div>
+    <LoadingSpinner v-if="isLoading" />
+    <UserList v-else :users="activeUsers" />
+  </div>
+</template>
+```
+
+הסקיל מונע: Options API כשComposition API זמין, mutations ישירות של Vuex ללא actions, template refs ללא הערות type, ו-`v-for` ללא `:key`.
+
+## האפקט המרוכב: ערימת סקילים
+
+הכוח האמיתי מתגלה כשמספר סקילים עובדים יחד. session פרונטאנד טיפוסי עשוי לטעון `react-expert`, `nextjs-developer`, `typescript-pro` ו-`ui-ux-pro-max` בו זמנית.
+
+כשאתם מבקשים מ-Claude "בנה דף רשימת מוצרים עם פילטרים, מיון ו-infinite scroll," הוא שואב מכל ארבעת הסקילים:
+
+- **`nextjs-developer`** מטפל בחלוקת server/client, ארכיטקטורת data fetching, ו-URL-based filter state
+- **`react-expert`** מבנה את עץ הרכיבים, מטפל ב-Suspense boundaries, ומייעל re-renders
+- **`typescript-pro`** מטיפס את filter state, נתוני מוצר ו-event handlers באופן ממצה
+- **`ui-ux-pro-max`** מבטיח שהרשת responsive, loading states משתמשים ב-skeletons, וכל האלמנטים האינטראקטיביים נגישים למקלדת
+
+התוצאה היא קוד באיכות ייצור מבקשה אחת, לא לאחר חמש סיבובי איטרציה.
+
+## להתחיל
+
+1. התקינו SuperSkills ב-`~/.claude/skills/`
+2. הפעילו Claude Code בפרויקט הפרונטאנד שלכם
+3. סקילים מופעלים בהתאם לסוגי קבצים ומילות מפתח — אין צורך בהגדרות
+4. התחילו לבנות: "צור רכיב טופס עם אימות," "הוסף authentication לאפליקציית Next.js הזו," "כתוב בדיקות Playwright לזרימת checkout"
+
+הרכיב הראשון שClaude מייצר שמטפל בצורה מושלמת ב-loading states, נגישות, TypeScript types ופריסה responsive מבלי שנשאל — זה הרגע שבו הערך של סקילים הופך לבלתי ניתן להכחשה.
+
+---
+
+*קבלו את 106 הסקילים של SuperSkills כולל חבילת הפרונטאנד המלאה — [הורידו ב-$50](/pricing) ושפו קוד פרונטאנד טוב יותר החל מהיום.*

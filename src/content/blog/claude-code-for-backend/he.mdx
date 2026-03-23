@@ -1,0 +1,315 @@
+---
+title: "Claude Code למפתחי בקאנד"
+description: "איך מהנדסי בקאנד משתמשים בסקילי Claude Code לעיצוב APIs, אופטימיזציית מסדי נתונים, מימוש אימות ובניית microservices."
+date: "2026-02-28"
+author: "SuperSkills"
+tags: ["claude code", "backend", "api", "microservices", "database"]
+category: "שימוש"
+---
+
+הנדסת בקאנד היא המקום שבו גרה המורכבות. את הפרונטאנד אפשר לשכתב בסוף שבוע. הבקאנד צובר החלטות — בחירות schema, חוזי API, זרימות אימות, אסטרטגיות caching — שמצטברות על פני שנים והופכות לעלות גבוהה לשנות. לקבל את ההחלטות הללו נכון מהפעם הראשונה זו לא רק פרקטיקה טובה; כך מערכות שורדות מספיק זמן כדי לחשוב.
+
+Claude Code עם סקילים ספציפיים לבקאנד לא כותב קוד בקאנד שעובד. הוא כותב קוד בקאנד שמתוכנן להחזיק: חוזים ברורים, תבניות הגנתיות, ביצועים מהתחלה, וסוג הארכיטקטורה שצוות יכול לבנות עליה ולא לעבוד מסביבה.
+
+## סקילי בקאנד באוסף SuperSkills
+
+**`api-designer`** — עיצוב API ל-REST ו-GraphQL: מידול משאבים, סמנטיקת HTTP, אסטרטגיות versioning, תבניות pagination, פורמטים של תגובות שגיאה, rate limiting, והחלטות שהופכות APIs לנעימות לשילוב ולא לחידה.
+
+**`database-optimizer`** — ביצועי מסד נתונים: ניתוח שאילתות, אסטרטגיית אינדקסים, עיצוב schema, connection pooling, מניעת N+1, פרשנות query plan, וההבדל בין שאילתות שנראות דומות אבל מבצעות בסדרי גודל שונים.
+
+**`microservices-architect`** — תבניות מערכות מבוזרות: גבולות שירות, תקשורת בין-שירות, ארכיטקטורה מונעת-אירועים, תבניות saga לעסקאות מבוזרות, circuit breakers, ושיקולים תפעוליים שהופכים microservices להחלטה טובה או לאסון.
+
+**`nestjs-expert`** — עומק NestJS: decorators, dependency injection, guards, interceptors, pipes, modules, אינטגרציית TypeORM, והתבניות שהופכות אפליקציות NestJS לניתנות לתחזוקה כשהן צומחות.
+
+## עיצוב APIs שמתיישנים בצורה טובה
+
+סקיל `api-designer` משנה את האופן שבו Claude ניגש לעיצוב endpoints. במקום לכתוב routes שתואמים לדרישות הנוכחיות, הוא מעצב APIs שיש להם מקום לגדול.
+
+### מידול משאבים
+
+עיצוב API רע בדרך כלל מתחיל במיפוי endpoints ישירות לטבלאות מסד נתונים. סקיל `api-designer` מדמה משאבים סביב מושגים עסקיים במקום:
+
+```
+# מונע נתונים (שביר)
+GET  /user_orders_view?user_id=123
+POST /insert_order
+PUT  /update_order_status
+
+# מונע משאבים (יציב)
+GET  /users/{userId}/orders
+POST /orders
+PATCH /orders/{orderId}/status
+```
+
+הגישה מונעת-המשאבים שורדת שיפוצי schema כי היא מדמה את תחום העסקים, לא את המימוש. כשמפצלים את טבלת `orders` ל-`orders` ו-`order_items`, משטח ה-API לא משתנה.
+
+### חוזי תגובות שגיאה
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "אימות הבקשה נכשל",
+    "details": [
+      {
+        "field": "email",
+        "code": "INVALID_FORMAT",
+        "message": "חייב להיות כתובת אימייל תקינה"
+      },
+      {
+        "field": "birthDate",
+        "code": "OUT_OF_RANGE",
+        "message": "חייב להיות לפחות לפני 13 שנים"
+      }
+    ],
+    "requestId": "req_01HX4K2M3N"
+  }
+}
+```
+
+הסקיל יודע: לתגובות שגיאה צריכים להיות שדות `code` קריאים-למכונה (לא רק הודעות קריאות לאדם), `details` לשגיאות אימות צריכים להיות ברמת שדה ופעיליים, `requestId` מאפשר קורלציה של לוגים לדיבוג, ועקביות חשובה יותר משלמות — כל endpoint צריך להשתמש באותו פורמט שגיאה.
+
+### Pagination שנעשה נכון
+
+```typescript
+// Offset pagination — פשוט אבל לא מתרחב
+GET /orders?page=3&limit=25
+
+// Cursor pagination — מתרחב למיליוני שורות
+GET /orders?after=01HX4K2M3N&limit=25
+
+// תגובה עם cursor הבא
+{
+  "data": [...],
+  "pagination": {
+    "cursor": "01HX4K2M3N7P",
+    "hasMore": true,
+    "total": null  // cursor pagination לא יכול לדעת את הסך בזול
+  }
+}
+```
+
+סקיל `api-designer` מסביר trade-offs: offset pagination פשוט ומאפשר קפיצה לדפים שרירותיים אבל נשבר כשמוכנסות שורות באמצע הקריאה; cursor pagination יציב ומתרחב אבל מאבד את היכולת לקפוץ לדף 50.
+
+## אופטימיזציית מסד נתונים
+
+סקיל `database-optimizer` הוא אחד מסקילי המינוף הגבוה ביותר באוסף. שאילתות רעות הן יקרות, קשות למציאה, ולעיתים נדירות ברורות מהקוד.
+
+### אסטרטגיית אינדקסים
+
+```sql
+-- השאילתה האיטית (full table scan על 10M שורות)
+SELECT * FROM orders
+WHERE user_id = 123
+  AND status = 'pending'
+  AND created_at > NOW() - INTERVAL '30 days'
+ORDER BY created_at DESC
+LIMIT 20;
+
+-- Query plan מראה: Seq Scan, cost=0.00..450000.00
+
+-- אחרי הוספת composite index
+CREATE INDEX idx_orders_user_status_date
+ON orders (user_id, status, created_at DESC)
+WHERE status IN ('pending', 'processing');  -- partial index
+
+-- Query plan מראה: Index Scan, cost=0.00..8.50
+```
+
+הסקיל יודע סדר עמודות אינדקס: תנאי שוויון קודם (`user_id`, `status`), אז עמודות range/sort (`created_at`). הוא גם יודע על partial indexes — הסעיף `WHERE status IN (...)` הופך את האינדקס לקטן ומהיר יותר כי הוא מאנדקס רק שורות שתואמות לתנאי.
+
+### בעיית N+1 בשכבת ORM
+
+```typescript
+// מייצר N+1 queries (1 להזמנות, N למשתמשים)
+const orders = await orderRepository.find({ status: 'pending' })
+for (const order of orders) {
+  console.log(order.user.email)  // טוען כל משתמש ב-lazy
+}
+
+// עם database-optimizer: eager loading בשאילתה אחת
+const orders = await orderRepository.find({
+  where: { status: 'pending' },
+  relations: ['user', 'items', 'items.product'],
+  select: {
+    id: true,
+    total: true,
+    createdAt: true,
+    user: { email: true, name: true },
+  }
+})
+```
+
+הסקיל גם מזהה מתי `relations` יוצר בעיית cartesian product (טעינת many-to-many דרך eager loading על datasets גדולים) ומציע DataLoader או batched fetching במקום.
+
+## זרימות אימות
+
+אימות הוא המקום שבו גרות טעויות אבטחה. סקיל `api-designer` מממש auth נכון כברירת מחדל.
+
+### JWT עם סיבוב Refresh Token
+
+```typescript
+// Access token: חיים קצרים (15 דקות)
+// Refresh token: חיים ארוכים (7 ימים), מאוחסן ב-httpOnly cookie
+
+async function refreshTokens(refreshToken: string): Promise<TokenPair> {
+  const payload = verifyRefreshToken(refreshToken)
+
+  // סיבוב: מבטל את refresh token הישן, מנפיק חדש
+  const stored = await refreshTokenRepository.findOne({
+    token: refreshToken,
+    userId: payload.sub,
+    used: false,
+  })
+
+  if (!stored) {
+    // זוהה שימוש חוזר בtoken — גניבה אפשרית
+    await refreshTokenRepository.invalidateAll(payload.sub)
+    throw new UnauthorizedException('זוהה שימוש חוזר ב-Refresh token')
+  }
+
+  await refreshTokenRepository.markUsed(refreshToken)
+
+  const user = await userRepository.findById(payload.sub)
+  return issueTokenPair(user)
+}
+```
+
+הסקיל מממש סיבוב refresh token (כל refresh מנפיק refresh token חדש, ומבטל את הישן), מזהה גניבת token פוטנציאלית (אם מוצג token שכבר נוצל שוב), ומאחסן refresh tokens ב-httpOnly cookies (לא ב-localStorage שנגיש ל-XSS).
+
+## ארכיטקטורת NestJS
+
+סקיל `nestjs-expert` מייצר קוד NestJS שמנצל לתכלית את מערכת dependency injection של הפריימוורק.
+
+### Guards ו-Interceptors
+
+```typescript
+// Guard: מטפל באימות
+@Injectable()
+export class ResourceOwnerGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest()
+    const { user, params } = request
+
+    const resourceType = this.reflector.get<string>(
+      'resourceType',
+      context.getHandler()
+    )
+
+    if (resourceType === 'order') {
+      const order = await this.orderService.findById(params.id)
+      return order.userId === user.id || user.role === 'admin'
+    }
+
+    return false
+  }
+}
+
+// Interceptor: מטמיר את צורת התגובה
+@Injectable()
+export class WrapResponseInterceptor<T>
+  implements NestInterceptor<T, ApiResponse<T>> {
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler
+  ): Observable<ApiResponse<T>> {
+    return next.handle().pipe(
+      map(data => ({
+        data,
+        meta: {
+          timestamp: new Date().toISOString(),
+          requestId: context.switchToHttp().getRequest().id,
+        },
+      }))
+    )
+  }
+}
+```
+
+הסקיל מבנה guards ללוגיקת הרשאות (נפרדת מאימות, ששייכת לאסטרטגיית JWT), משתמש ב-interceptors לחששות cross-cutting כמו עיטוף תגובות, ומנצל את `Reflector` לאימות מונע-metadata.
+
+## תבניות Microservices
+
+סקיל `microservices-architect` מיישם תבניות מערכות מבוזרות שמונעות את הכשלים הנפוצים שעושים לmicroservices שם רע.
+
+### תבנית Circuit Breaker
+
+```typescript
+import { CircuitBreaker } from 'opossum'
+
+const inventoryServiceCall = async (productId: string) =>
+  fetch(`${INVENTORY_URL}/products/${productId}/stock`)
+
+const breaker = new CircuitBreaker(inventoryServiceCall, {
+  timeout: 3000,                    // timeout של 3 שניות
+  errorThresholdPercentage: 50,     // פתיחה אחרי 50% כשלים
+  resetTimeout: 30000,              // ניסיון חוזר אחרי 30 שניות
+})
+
+breaker.fallback(() => ({
+  inStock: true,  // fallback אופטימיסטי — לא חוסמים רכישה
+  quantity: null, // null מסמן "לא ידוע" לצרכן
+}))
+
+// שימוש
+async function getProductDetails(productId: string) {
+  const stock = await breaker.fire(productId)
+  return { productId, stock }
+}
+```
+
+הסקיל יודע: timeouts מונעים כשלים מדורגים, ספי שגיאה פותחים את המפסק לפני כשל מוחלט, reset timeouts מאפשרים התאוששות ללא התערבות ידנית, ו-fallbacks שומרים על פונקציונליות מדורגת ולא כשל מוחלט.
+
+### תקשורת מונעת-אירועים
+
+```typescript
+// פרסום אירועים לצימוד רופף
+class OrderService {
+  async createOrder(dto: CreateOrderDto): Promise<Order> {
+    const order = await this.orderRepository.save(dto)
+
+    // פרסום אירוע — שירותים אחרים מגיבים באופן עצמאי
+    await this.eventBus.publish(new OrderCreatedEvent({
+      orderId: order.id,
+      userId: order.userId,
+      items: order.items,
+      total: order.total,
+      timestamp: new Date(),
+    }))
+
+    return order
+  }
+}
+
+// צרכנים מטפלים בחששות שלהם
+class InventoryService {
+  @EventsHandler(OrderCreatedEvent)
+  async onOrderCreated(event: OrderCreatedEvent): Promise<void> {
+    await this.reserveInventory(event.items)
+  }
+}
+
+class NotificationService {
+  @EventsHandler(OrderCreatedEvent)
+  async onOrderCreated(event: OrderCreatedEvent): Promise<void> {
+    await this.sendConfirmationEmail(event.userId, event.orderId)
+  }
+}
+```
+
+אירועים מנתקים שירותים: `OrderService` לא יודע על מלאי או התראות. ניתן להוסיף צרכנים חדשים מבלי לשנות את המפרסם. זו התבנית שהופכת microservices למתרחבות באמת.
+
+## להתחיל
+
+1. התקינו SuperSkills ב-`~/.claude/skills/`
+2. פתחו את פרויקט הבקאנד שלכם ב-Claude Code
+3. סקילים מופעלים בהתאם להקשר קבצים — `database-optimizer` כשמזוהה קוד SQL או ORM, `api-designer` להגדרות routes
+4. התחילו לבנות: "עצב את ה-API למוצר SaaS רב-דיירים," "הוסף caching ל-endpoint הזה," "מממש JWT authentication עם refresh tokens"
+
+הפעם הראשונה שClaude מעצב API עם versioning נכון, pagination, חוזי שגיאה ו-rate limiting מתיאור אחד — זה הרגע שבו עבודת בקאנד מתחילה להרגיש כאילו היא נעה במהירות שונה.
+
+---
+
+*קבלו את 106 הסקילים של SuperSkills כולל חבילת הנדסת הבקאנד המלאה — [הורידו ב-$50](/#pricing) ובנו בקאנד טוב יותר החל מהיום.*

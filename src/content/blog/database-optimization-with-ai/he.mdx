@@ -1,0 +1,263 @@
+---
+title: "אופטימיזציה של בסיסי נתונים עם Claude Code"
+description: "כיצד לאמץ שאילתות בסיס נתונים, לתכנן סכמות טובות יותר ולשפר ביצועים באמצעות סקילי בסיסי הנתונים של Claude Code."
+date: "2026-01-28"
+author: "SuperSkills"
+tags: ["בסיס נתונים", "אופטימיזציה", "postgresql", "mysql", "claude code"]
+category: "מדריך"
+---
+
+ביצועי בסיס נתונים הם המקום שבו רוב היישומים בסופו של דבר מגיעים לתקרתם. הפיצ'ר שעבד מצוין ב-1,000 משתמשים מתחיל לגרור ב-100,000. שאילתות שרצו במילישניות מתחילות לקחת שניות. מהנדסים מביטים בפלט EXPLAIN ומנסים להבין מדוע.
+
+Claude Code, מצויד בסקילים ממוקדי בסיסי נתונים, הופך ל-DBA מנוסה שקורא תוכניות שאילתה, מעצב אינדקסים, מזהה תבניות N+1 ומכתיב מחדש שאילתות איטיות לפני שהן מגיעות לייצור.
+
+## סקילי בסיסי נתונים באוסף SuperSkills
+
+שלושה סקילים מכסים את כל הספקטרום של עבודת בסיסי נתונים:
+
+**`database-optimizer`** — מומחה הביצועים. מנתח שאילתות איטיות, קורא פלט EXPLAIN/EXPLAIN ANALYZE, מזהה אינדקסים חסרים ומכתיב מחדש שאילתות לתוכניות ביצוע טובות יותר. יודע את ההבדל בין sequential scan מקובל לבין כזה שהורג ביצועים.
+
+**`postgres-pro`** — מומחיות ספציפית ל-PostgreSQL. מכסה תכונות Postgres מתקדמות: CTEs, window functions, partial indexes, פעולות JSONB, ניתוח pg_stat_statements, כוונון autovacuum וחיבור pooling עם PgBouncer. לכשאתם צוללים עמוק ב-Postgres.
+
+**`sql-pro`** — אמנות SQL בין מנועים. כותב SQL נקי ויעיל שעובד בין אם אתם על PostgreSQL, MySQL, SQLite או SQL Server. מכסה עקרונות אופטימיזציית שאילתות, עיצוב סכמה ותבניות SQL שכל מהנדס בסיסי נתונים צריך.
+
+## קריאת פלט EXPLAIN
+
+`EXPLAIN ANALYZE` הוא כלי האבחון החזק ביותר בארסנל של מהנדס בסיסי נתונים — וגם הנקרא בצורה שגויה ביותר. סקיל `database-optimizer` מלמד את Claude לפרש תוכניות ביצוע נכון.
+
+שאילתה איטית:
+
+```sql
+SELECT u.name, COUNT(o.id) as order_count, SUM(o.total) as revenue
+FROM users u
+JOIN orders o ON u.id = o.user_id
+WHERE o.created_at > '2026-01-01'
+GROUP BY u.id, u.name
+ORDER BY revenue DESC;
+```
+
+הרצת `EXPLAIN ANALYZE` ללא הסקיל, Claude עלול לציין "יש sequential scan." עם סקיל `database-optimizer` פעיל, Claude קורא את התוכנית המלאה:
+
+```
+Hash Join  (cost=2847.00..8923.45 rows=12483 width=48) (actual time=234.521..891.432 rows=8742 loops=1)
+  Hash Cond: (o.user_id = u.id)
+  ->  Seq Scan on orders o  (cost=0.00..4821.00 rows=89234 width=16)
+        (actual time=0.012..312.445 rows=89234 loops=1)
+        Filter: (created_at > '2026-01-01')
+        Rows Removed by Filter: 234521
+  ->  Hash  (cost=1823.00..1823.00 rows=82000 width=36)
+        (actual time=198.234..198.234 rows=82000 loops=1)
+        Buckets: 131072  Batches: 1  Memory Usage: 5234kB
+        ->  Seq Scan on users u  (cost=0.00..1823.00 rows=82000 width=36)
+```
+
+הסקיל מזהה: הפילטר על `orders.created_at` מסיר 234,521 שורות לאחר קריאתן כולן — אינדקס חסר. טבלת users נסרקת במלואה לבנות hash, שעשוי להיות מקובל ב-82K שורות אך יתפוגג רע. הוא ממליץ:
+
+```sql
+-- אינדקס לתמיכה בפילטר תאריך
+CREATE INDEX idx_orders_created_at ON orders (created_at);
+
+-- אם השאילתה תמיד מסוננת לפי תאריך + משתמש, אינדקס מורכב עדיף
+CREATE INDEX idx_orders_user_created ON orders (user_id, created_at);
+```
+
+## עיצוב אינדקסים
+
+סקיל `database-optimizer` מבין אסטרטגיית אינדקסים מעבר ל-"צור אינדקס על העמודה ב-WHERE clause."
+
+### Partial Indexes (PostgreSQL)
+
+כשאתם רק אי פעם שואלים תת-קבוצה של שורות, אינדקסו רק את אותה תת-קבוצה:
+
+```sql
+-- רק אינדוקס משתמשים פעילים — 10% מהטבלה
+CREATE INDEX idx_users_active_email ON users (email)
+WHERE status = 'active';
+
+-- רק אינדוקס חשבוניות שלא שולמו
+CREATE INDEX idx_invoices_unpaid ON invoices (due_date, customer_id)
+WHERE paid_at IS NULL;
+```
+
+### Covering Indexes
+
+כשהשאילתה צריכה רק עמודות מאונדקסות, PostgreSQL יכול לענות עליה לחלוטין מהאינדקס:
+
+```sql
+-- שאילתה: SELECT email, name FROM users WHERE plan = 'pro'
+CREATE INDEX idx_users_plan_covering ON users (plan) INCLUDE (email, name);
+```
+
+### סדר עמודות באינדקס מורכב
+
+סקיל `sql-pro` אוכף סדר עמודות נכון — תנאי שוויון לפני תנאי טווח:
+
+```sql
+-- שאילתה: WHERE tenant_id = $1 AND created_at > $2 AND status = $3
+
+-- שגוי — תנאי טווח באמצע שובר את השימוש באינדקס ל-status
+CREATE INDEX bad_idx ON events (tenant_id, created_at, status);
+
+-- נכון — תנאי שוויון קודם, תנאי טווח אחרון
+CREATE INDEX good_idx ON events (tenant_id, status, created_at);
+```
+
+## זיהוי שאילתות N+1
+
+N+1 היא בעיית ביצועים ORM הנפוצה ביותר. סקיל `database-optimizer` תופס אותה מיד.
+
+```python
+# N+1 ב-SQLAlchemy — 1 שאילתה למשתמשים + N שאילתות להזמנות
+users = User.query.all()
+for user in users:
+    print(f"{user.name}: {len(user.orders)} orders")
+    # זה מפעיל שאילתה חדשה לכל משתמש
+```
+
+עבור 1,000 משתמשים, זה מבצע 1,001 שאילתות. הסקיל מזהה את התבנית וכותב מחדש:
+
+```python
+# תוקן — שאילתה 1 עם JOIN, טעון בהיסוס
+from sqlalchemy.orm import joinedload
+
+users = User.query.options(joinedload(User.orders)).all()
+for user in users:
+    print(f"{user.name}: {len(user.orders)} orders")
+    # הזמנות כבר טעונות — אין שאילתות נוספות
+```
+
+## נורמליזציה של סכמה
+
+סקיל `database-optimizer` מעריך סכמות לאיתור בעיות נורמליזציה הגורמות לבעיות שלמות נתונים ובעיות ביצועים:
+
+**לפני — לא מנורמל:**
+
+```sql
+CREATE TABLE orders (
+    id BIGSERIAL PRIMARY KEY,
+    customer_name VARCHAR(255),
+    customer_email VARCHAR(255),
+    customer_address TEXT,
+    -- נתוני לקוח חוזרים בכל הזמנה
+    product_name VARCHAR(255),
+    product_price DECIMAL(10,2),
+    quantity INT,
+    total DECIMAL(10,2)
+);
+```
+
+**אחרי — מנורמל:**
+
+```sql
+CREATE TABLE customers (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE order_items (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL REFERENCES orders(id),
+    product_id BIGINT NOT NULL REFERENCES products(id),
+    quantity INT NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    total DECIMAL(10,2) GENERATED ALWAYS AS (quantity * unit_price) STORED
+);
+```
+
+## חלוקה לחלקים (Table Partitioning)
+
+לטבלאות גדולות (100M+ שורות), חלוקה לחלקים משנה ביצועי שאילתות. סקיל `postgres-pro` מממש אותה נכון:
+
+```sql
+-- חלוקת טבלת הזמנות לפי חודש
+CREATE TABLE orders (
+    id BIGSERIAL,
+    customer_id BIGINT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    total DECIMAL(10,2)
+) PARTITION BY RANGE (created_at);
+
+CREATE TABLE orders_2026_01 PARTITION OF orders
+    FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
+
+CREATE INDEX idx_orders_customer ON orders (customer_id, created_at);
+```
+
+שאילתות מסוננות לפי `created_at` כעת תסרוקנה רק את המחיצה הרלוונטית במקום הטבלה כולה.
+
+## Connection Pooling
+
+חיבורי בסיס נתונים יקרים. כל חיבור דורש זיכרון בשרת, ופתיחת חיבורים מוסיפה latency. סקיל `postgres-pro` מגדיר PgBouncer נכון:
+
+```ini
+[pgbouncer]
+pool_mode = transaction          # הטוב ביותר לרוב יישומי ווב
+max_client_conn = 1000
+default_pool_size = 20
+reserve_pool_size = 5
+server_idle_timeout = 600
+```
+
+במצב transaction, בסיס הנתונים מקבל 20 חיבורים ללא קשר לכמה threads של אפליקציה מתחברים.
+
+## לפני/אחרי: אופטימיזציה אמיתית
+
+שאילתת דוח על מסד נתונים של e-commerce, שורצת ב-8.2 שניות:
+
+```sql
+-- לפני: 8.2 שניות
+SELECT
+    p.category,
+    DATE_TRUNC('month', o.created_at) as month,
+    COUNT(DISTINCT o.customer_id) as unique_customers,
+    SUM(oi.quantity * oi.unit_price) as revenue
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.id
+JOIN products p ON oi.product_id = p.id
+WHERE o.created_at BETWEEN '2025-01-01' AND '2026-01-01'
+GROUP BY p.category, DATE_TRUNC('month', o.created_at)
+ORDER BY month, revenue DESC;
+```
+
+עם `database-optimizer`, הסקיל מנתח את תוכנית הביצוע וממליץ על שלושה שינויים:
+
+1. **הוספת אינדקס מורכב** על `orders(created_at, id)`
+2. **הוספת אינדקס** על `order_items(order_id)` עבור ה-JOIN
+3. **כתיבה מחדש** באמצעות CTE לחומר הזמנות מסוננות תחילה
+
+```sql
+-- אחרי: 0.4 שניות
+WITH monthly_orders AS (
+    SELECT id, customer_id, created_at
+    FROM orders
+    WHERE created_at BETWEEN '2025-01-01' AND '2026-01-01'
+)
+SELECT
+    p.category,
+    DATE_TRUNC('month', mo.created_at) as month,
+    COUNT(DISTINCT mo.customer_id) as unique_customers,
+    SUM(oi.quantity * oi.unit_price) as revenue
+FROM order_items oi
+JOIN monthly_orders mo ON oi.order_id = mo.id
+JOIN products p ON oi.product_id = p.id
+GROUP BY p.category, DATE_TRUNC('month', mo.created_at)
+ORDER BY month, revenue DESC;
+```
+
+פי 20 מהיר יותר. אותה תוצאה.
+
+## להתחיל עם סקילי בסיסי נתונים
+
+1. התקינו את אוסף SuperSkills ב-`~/.claude/skills/`
+2. טענו `database-optimizer` בעת חקירת שאילתות איטיות — הדביקו את פלט EXPLAIN ובקשו ניתוח
+3. טענו `postgres-pro` לעבודה ספציפית ל-PostgreSQL: עיצוב סכמה, תכונות מתקדמות, כוונון קונפיגורציה
+4. טענו `sql-pro` לכתיבה וסקירת SQL בין מנועים
+5. שאלו ישירות: "נתח תוכנית ביצוע זו," "מצא בעיות N+1 בקוד זה," או "עצב אינדקס לתבנית שאילתה זו"
+
+בעיות ביצועי בסיס נתונים מצטברות. שאילתה איטית שלוקחת 2 שניות היום לוקחת 20 שניות כשהנתונים שלכם פי 10 — ולא תשימו לב עד שזה יהיה תקרית. הפעלת הסקילים במהלך הפיתוח מונעת את החוב.
+
+---
+
+*קבלו את 106 הסקילים של SuperSkills כולל חבילת בסיסי הנתונים המלאה — [הורידו ב-$50](/#pricing) והתחילו לכתוב שאילתות מהירות יותר מהיום.*

@@ -1,0 +1,306 @@
+---
+title: "בניית REST APIs עם Claude Code: מדריך מעשי"
+description: "מדריך שלב-אחר-שלב לבניית REST APIs מוכנים לפרודקשן עם Claude Code — מעיצוב סכמה, דרך אימות, ועד deployment."
+date: "2026-02-06"
+author: "SuperSkills"
+tags: ["rest api", "claude code", "פיתוח api", "מדריך"]
+category: "Tutorial"
+---
+
+לבנות REST API שעובד זה קל. לבנות אחד שמוכן לפרודקשן — עם אימות נכון, ולידציה, טיפול בשגיאות, pagination ותיעוד — לוקח ניסיון. הסקיל `api-designer` נותן ל-Claude את הניסיון הזה, ומאפשר לכם לבנות APIs שמפתחים באמת רוצים להשתמש בהם.
+
+המדריך הזה עובר על התהליך המלא של בניית REST API מוכן לפרודקשן עם Claude Code.
+
+---
+
+## התחילו עם מידול משאבים
+
+הטעות הגדולה ביותר בעיצוב API היא לקפוץ ישר לנתיבים. נתיבים הם פני השטח של ה-API שלכם — משאבים הם הבסיס.
+
+התחילו בתיאור הדומיין שלכם ל-Claude:
+
+```
+"אני בונה API לאיקומרס. הישויות הראשיות הן:
+- מוצרים (שם, תיאור, מחיר, מלאי, קטגוריה)
+- משתמשים (שם, אימייל, תפקיד)
+- הזמנות (משתמש, פריטים, סטטוס, סה"כ)
+- ביקורות (משתמש, מוצר, דירוג, טקסט)"
+```
+
+Claude ימדל את הקשרים, יציע אילו משאבים ברמה עליונה לעומת מקוננים, ויזהה אילו פעולות כל משאב צריך. תקבלו מפת משאבים לפני שתכתבו נתיב אחד.
+
+---
+
+## עקרונות עיצוב נתיבים
+
+נתיבים טובים ניתנים לחיזוי. כל מי שמכיר REST יכול להשתמש ב-API שלכם בלי לקרוא את התיעוד לפעולות בסיסיות. הסקיל `api-designer` אוכף את המוסכמות האלה:
+
+**שמות משאבים:**
+```
+GET    /products           # רשימה
+GET    /products/:id       # קבל אחד
+POST   /products           # צור
+PUT    /products/:id       # החלף
+PATCH  /products/:id       # עדכן חלקית
+DELETE /products/:id       # מחק
+```
+
+**משאבים מקוננים (עומק אחד בלבד):**
+```
+GET    /products/:id/reviews    # ביקורות למוצר
+POST   /products/:id/reviews    # הוסף ביקורת
+```
+
+**פעולות שלא מתאימות ל-CRUD (השתמשו בפעלים בחיסכון):**
+```
+POST   /orders/:id/cancel      # בטל הזמנה
+POST   /users/:id/verify-email # הפעל אימות אימייל
+```
+
+ספרו ל-Claude את הישויות שלכם והוא יייצר מפת נתיבים מלאה לפי המוסכמות האלה, כולל אילו מתודות HTTP מתאימות לכל פעולה.
+
+---
+
+## ולידציה עם Zod
+
+ולידציה היא קו ההגנה הראשון שלכם. כל קלט ל-API שלכם צריך להיות מאומת לפני שהוא נוגע בלוגיקה העסקית או בבסיס הנתונים. Zod הופך את זה לנקי ובטוח מבחינת טיפוסים.
+
+בקשו מ-Claude לייצר סכמות Zod למשאבים שלכם:
+
+```
+"ייצר סכמות ולידציה Zod ליצירה ועדכון של מוצר.
+כלול: שם (חובה, 3-100 תווים), מחיר (מספר חיובי),
+מלאי (מספר שלם לא-שלילי), קטגוריה (enum מקטגוריות מוגדרות)."
+```
+
+```typescript
+const createProductSchema = z.object({
+  name: z.string().min(3).max(100),
+  description: z.string().max(2000).optional(),
+  price: z.number().positive(),
+  stock: z.number().int().nonnegative(),
+  category: z.enum(['electronics', 'clothing', 'food', 'books', 'other']),
+});
+
+const updateProductSchema = createProductSchema.partial();
+```
+
+הדפוס הזה נותן לכם גופי בקשה בטוחי-טיפוסים בכל ה-handlers שלכם, הודעות שגיאה אוטומטיות שאומרות ללקוח בדיוק מה לא בסדר, ומקור אמת אחד לכללי הולידציה שלכם.
+
+---
+
+## אימות עם JWT
+
+רוב ה-APIs צריכים אימות. JWT (JSON Web Tokens) הוא הסטנדרט עבור auth חסר-מצב ב-REST APIs. Claude עם `api-designer` מממש את זה נכון — כולל רענון טוקן, תפוגה נכונה, ומדריך אחסון בטוח.
+
+**זרימת האימות:**
+
+```typescript
+// Endpoint כניסה
+router.post('/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user || !await bcrypt.compare(password, user.passwordHash)) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const accessToken = jwt.sign(
+    { userId: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '15m' }
+  );
+
+  const refreshToken = jwt.sign(
+    { userId: user.id },
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: '7d' }
+  );
+
+  // שמור refresh token ב-httpOnly cookie (לא localStorage)
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.json({ accessToken, user: { id: user.id, name: user.name, role: user.role } });
+});
+```
+
+בקשו מ-Claude לייצר את זרימת ה-auth המלאה: כניסה, רוטציית refresh token, יציאה (ביטול טוקן), ו-middleware האימות שמגן על הנתיבים שלכם.
+
+---
+
+## טיפול בשגיאות
+
+תגובות שגיאה עקביות הופכות את ה-API שלכם לנוח הרבה יותר לשימוש. כל שגיאה צריכה לקבל את אותה צורה כדי שהלקוחות יוכלו לטפל בהן באופן אחיד.
+
+```typescript
+// Middleware שגיאות מרוכז (Express)
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      error: err.message,
+      code: err.code,
+    });
+  }
+
+  // רשמו שגיאות בלתי צפויות
+  console.error(err);
+  res.status(500).json({
+    error: 'Internal server error',
+    code: 'INTERNAL_ERROR',
+  });
+});
+```
+
+```typescript
+// מחלקות שגיאה מותאמות
+class AppError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number,
+    public code: string
+  ) {
+    super(message);
+  }
+}
+
+class NotFoundError extends AppError {
+  constructor(resource: string) {
+    super(`${resource} not found`, 404, 'NOT_FOUND');
+  }
+}
+```
+
+ספרו ל-Claude "ממש טיפול שגיאות מרוכז עם מחלקות שגיאה מוקלדות" והוא מייצר את ההגדרה המלאה כולל middleware לטיפול בשגיאות async ב-Express.
+
+---
+
+## Pagination
+
+כל endpoint שמחזיר רשימה צריך pagination. יש שתי גישות עיקריות והסקיל `api-designer` יודע מתי להשתמש בכל אחת:
+
+**Offset pagination** (פשוט, טוב לדאטה-סטים קטנים):
+```typescript
+router.get('/products', async (req, res) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+  const offset = (page - 1) * limit;
+
+  const [items, total] = await Promise.all([
+    Product.findAll({ limit, offset }),
+    Product.count(),
+  ]);
+
+  res.json({
+    data: items,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      hasNext: page * limit < total,
+    },
+  });
+});
+```
+
+**Cursor pagination** (טוב יותר לדאטה-סטים גדולים, נתונים בזמן אמת):
+```
+GET /products?cursor=eyJpZCI6MTAwfQ&limit=20
+```
+
+שאלו את Claude איזו גישה מתאימה לתרחיש שלכם והוא יסביר את הפשרות ויממש את הנכונה.
+
+---
+
+## Rate Limiting
+
+הגנו על ה-API שלכם מניצול לרעה עם rate limiting. זה צריך להיות אחד הדברים הראשונים שתוסיפו:
+
+```typescript
+import rateLimit from 'express-rate-limit';
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 דקות
+  max: 100, // מקסימום 100 בקשות לחלון
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Too many requests',
+      code: 'RATE_LIMIT_EXCEEDED',
+      retryAfter: Math.ceil(req.rateLimit.resetTime / 1000),
+    });
+  },
+});
+
+// מגבלות קפדניות יותר ל-endpoints של auth
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  skipSuccessfulRequests: true, // ספר רק ניסיונות כושלים
+});
+```
+
+---
+
+## תיעוד OpenAPI
+
+תיעוד טוב הוא חלק מ-API טוב. OpenAPI (לשעבר Swagger) הוא הסטנדרט. הסקיל `api-designer` יכול לייצר מפרטי OpenAPI מהגדרות הנתיבים שלכם:
+
+```
+"ייצר תיעוד OpenAPI 3.0 לנתיבי המוצרים שבנינו זה עתה,
+כולל סכמות בקשה/תגובה, דרישות אימות ודוגמאות ערכים."
+```
+
+תוכלו גם לבקש מ-Claude להגדיר את `swagger-ui-express` להגשת מסמכים אינטראקטיביים ב-`/api-docs` — נהדר לפיתוח ולשיתוף עם צוותי frontend.
+
+---
+
+## API מלא בסשן אחד
+
+כך נראה סשן מלא עם `api-designer`:
+
+1. תארו את הדומיין והישויות שלכם
+2. בקשו מפת משאבים ועיצוב נתיבים
+3. בקשו מ-Claude לפגוש את מבנה הפרויקט (נתיבים, controllers, services, models)
+4. בקשו סכמות Zod לכל משאב
+5. הוסיפו middleware אימות
+6. הוסיפו טיפול בשגיאות
+7. הוסיפו pagination ל-endpoints של רשימות
+8. הוסיפו rate limiting
+9. ייצרו מסמכי OpenAPI
+
+זה בסיס API מוכן לפרודקשן בסשן ממוקד אחד. אתם מטפלים בלוגיקה העסקית הספציפית לדומיין שלכם — Claude מטפל בדפוסי התשתית.
+
+---
+
+## צ'קליסט פרודקשן
+
+לפני שחרור ה-API שלכם, בקשו מ-Claude לבדוק אותו מול הצ'קליסט הזה:
+
+- כל הקלטים מאומתים עם Zod
+- אימות על כל הנתיבים המוגנים
+- בדיקות הרשאה (משתמשים יכולים לשנות רק את המשאבים שלהם)
+- Rate limiting על כל ה-endpoints (קפדני יותר על auth)
+- CORS מוגדר לדומיינים של ה-frontend שלכם
+- Helmet.js לכותרות אבטחה
+- רישום מובנה (לא רק `console.log`)
+- Health check endpoint ב-`/health`
+- מסמכי OpenAPI מעודכנים
+
+הסקיל `api-designer` מכיר את כל הדפוסים האלה. שאלו "בדוק את ה-API הזה לגבי מוכנות פרודקשן" וClaude יסמן מה חסר.
+
+---
+
+## בנו APIs שצוותים אוהבים להשתמש בהם
+
+ההבדל בין API שמפתחים שונאים לאחד שהם אוהבים הוא עקביות וניתנות לחיזוי. הסקיל `api-designer` אוכף את הדפוסים שהופכים APIs לניתנים לחיזוי — כדי שהמפתחים שצורכים את ה-API שלכם יוכלו להתמקד בבניית פיצ'רים, לא בהבנת המוסכמות שלכם.
+
+הסקיל `api-designer` הוא חלק מספריית SuperSkills — 106 סקילס שמכסים כל שכבה של פיתוח תוכנה מודרני.
+
+**מוכנים לבנות APIs טובים יותר מהר יותר?** ראו את כל 106 הסקילס ב-[/#pricing](/#pricing).

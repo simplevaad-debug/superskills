@@ -1,0 +1,221 @@
+---
+title: "Claude Code for Security Engineers"
+description: "How security engineers use Claude Code skills to find vulnerabilities, implement secure authentication, and prevent OWASP Top 10 attacks."
+date: "2026-01-30"
+author: "SuperSkills"
+tags: ["claude code", "security", "owasp", "vulnerabilities", "authentication"]
+category: "Use Case"
+---
+
+Security is the one engineering discipline where "good enough" is never acceptable. A single missed SQL injection, one weak JWT implementation, a forgotten rate limit — and a breach happens. Security engineers carry the weight of protecting systems that everyone else builds.
+
+Claude Code, equipped with security-focused skills, becomes a vigilant second reviewer that thinks adversarially by default — catching what tired eyes miss during code review.
+
+## Security Skills in the SuperSkills Collection
+
+Two skills are purpose-built for security work:
+
+**`security-reviewer`** — The offensive lens. Reviews code for vulnerabilities across all OWASP Top 10 categories, checks for insecure patterns, weak cryptography, injection flaws, and broken access control. Treats every input as potentially hostile.
+
+**`secure-code-guardian`** — The defensive lens. Guides implementation of secure patterns: proper auth flows, secrets management, input sanitization, output encoding, and defense-in-depth architecture. Helps write code that's secure by design, not by accident.
+
+Load both together for comprehensive security coverage — `security-reviewer` finds what's broken, `secure-code-guardian` shows how to fix it correctly.
+
+## OWASP Top 10 Prevention
+
+The OWASP Top 10 represents the most critical web application security risks. Here's how security skills handle each major category:
+
+### 1. Injection (SQL, NoSQL, Command)
+
+Without a skill, Claude might write a query using string interpolation — directly embedding user input into the SQL string. With `security-reviewer` active, Claude flags this immediately and rewrites it using parameterized queries or an ORM:
+
+```python
+# Secure — parameterized query
+query = "SELECT * FROM users WHERE email = %s"
+cursor.execute(query, (email,))
+
+# Or with SQLAlchemy ORM — even better
+user = db.session.query(User).filter(User.email == email).first()
+```
+
+The skill understands that parameterized queries aren't "better practice" — they're a hard requirement. String interpolation is never acceptable for queries containing user input.
+
+### 2. Broken Authentication
+
+A naive session implementation has no rate limiting, no session regeneration after login, and leaks whether a user account exists. With `secure-code-guardian`, the implementation adds rate limiting, constant-time password comparison, session regeneration (preventing session fixation), and uniform error responses:
+
+```javascript
+app.post('/login', rateLimit({ max: 5, windowMs: 15 * 60 * 1000 }), async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
+  const valid = user && await bcrypt.compare(password, user.passwordHash);
+
+  if (!valid) {
+    // Same response whether user exists or not — prevents user enumeration
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  req.session.regenerate((err) => {
+    req.session.userId = user.id;
+    req.session.createdAt = Date.now();
+    res.json({ success: true });
+  });
+});
+```
+
+### 3. Cross-Site Scripting (XSS)
+
+XSS is the most prevalent web vulnerability. The security skill enforces content insertion using safe DOM methods — `textContent` for plain text, and a sanitizer library (like DOMPurify) for any content that genuinely requires markup. For server-rendered templates, it insists on template engines with auto-escaping enabled, never manual string concatenation to build HTML output.
+
+### 4. CSRF Protection
+
+For state-changing operations (POST/PUT/DELETE), the skill implements the synchronizer token pattern and ensures CSRF protection is never exempted from sensitive routes:
+
+```python
+# Flask-WTF validates CSRF token automatically on all state-changing routes
+@app.route('/transfer', methods=['POST'])
+def transfer():
+    amount = request.form['amount']
+    # process transfer — CSRF token validated by framework middleware
+```
+
+## Input Validation
+
+The `secure-code-guardian` skill enforces validation at every boundary using an allowlist approach — specify exactly what is valid and reject everything else:
+
+```typescript
+import { z } from 'zod';
+
+const CreateUserSchema = z.object({
+  email: z.string().email().max(254),
+  password: z.string().min(12).max(128),
+  role: z.enum(['user', 'admin']).default('user'),
+  age: z.number().int().min(18).max(120),
+});
+
+app.post('/users', async (req, res) => {
+  const result = CreateUserSchema.safeParse(req.body);
+
+  if (!result.success) {
+    return res.status(400).json({
+      error: 'Invalid input',
+      // Never expose internal schema details in production
+      ...(process.env.NODE_ENV !== 'production' && { details: result.error.issues })
+    });
+  }
+
+  const validatedData = result.data;
+  // proceed with safe, typed data
+});
+```
+
+The skill enforces server-side validation (client-side validation is UX, not security), strict schemas, and non-leaky error messages.
+
+## Dependency Auditing
+
+Modern applications have hundreds of transitive dependencies — each a potential attack surface. With the security skill, Claude builds automated auditing into your CI workflow:
+
+```yaml
+name: Security Audit
+
+on:
+  push:
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday morning
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm audit --audit-level=high
+      - uses: ossf/scorecard-action@v2.3.1
+        with:
+          results_format: sarif
+      - uses: github/codeql-action/upload-sarif@v3
+```
+
+## Secrets Scanning
+
+Hardcoded secrets are among the most common and most preventable vulnerabilities. The security skill sets up prevention at multiple layers — a pre-commit hook that blocks secrets before they enter the repo, and a CI step that scans the full history:
+
+```yaml
+- name: Scan for secrets
+  uses: trufflesecurity/trufflehog@main
+  with:
+    path: ./
+    base: ${{ github.event.repository.default_branch }}
+    head: HEAD
+    extra_args: --only-verified
+```
+
+The skill also guides environment variable management: `.env` files for local development, secrets managers (AWS Secrets Manager, HashiCorp Vault) for production, and `.gitignore` that includes all `.env*` files.
+
+## Authentication Implementation: JWT Done Right
+
+JWT is widely misused. The security skill knows the pitfalls — algorithm confusion attacks, "none" algorithm exploits, missing claims, and overly long token lifetimes:
+
+```javascript
+const JWT_SECRET = process.env.JWT_SECRET; // At least 256-bit random value
+
+function generateTokens(userId) {
+  const accessToken = jwt.sign(
+    { sub: userId, type: 'access' },
+    JWT_SECRET,
+    {
+      algorithm: 'HS256', // Explicitly specify — never let the header dictate
+      expiresIn: '15m',   // Short-lived access tokens
+      issuer: 'superskills.app',
+      audience: 'superskills.app',
+    }
+  );
+  return accessToken;
+}
+
+function verifyToken(token) {
+  return jwt.verify(token, JWT_SECRET, {
+    algorithms: ['HS256'], // Allowlist — reject RS256/none/etc
+    issuer: 'superskills.app',
+    audience: 'superskills.app',
+  });
+}
+```
+
+Explicit algorithm specification, short lifetimes, proper claims, and an algorithm allowlist — all fields that "just works" JWT implementations omit.
+
+## Real Scenario: Security Code Review
+
+Hand the security skill a controller and ask for a review. A simple delete endpoint:
+
+```python
+@app.route('/admin/users/<user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    user = User.query.get(user_id)
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({'deleted': user_id})
+```
+
+With `security-reviewer` active, Claude identifies five problems in a single pass:
+
+1. **No authentication check** — anyone can call this endpoint
+2. **No authorization check** — authenticated users can delete any account
+3. **IDOR (Insecure Direct Object Reference)** — user_id from the URL is never validated for ownership
+4. **No audit logging** — deletions aren't recorded for compliance
+5. **No soft delete** — data is permanently destroyed with no recovery path
+
+The corrected version adds authentication, role checks, self-deletion prevention, soft delete, and audit logging. That's the difference between code that was written and code that was reviewed.
+
+## Getting Started with Security Skills
+
+1. Install the SuperSkills collection to `~/.claude/skills/`
+2. Load `security-reviewer` when reviewing existing code
+3. Load `secure-code-guardian` when writing new authentication, authorization, or data handling code
+4. Load both together during security audits
+5. Ask directly: "Review this endpoint for security vulnerabilities" or "Implement secure password reset"
+
+Security bugs are expensive to find after deployment and catastrophic to miss entirely. Having a second pair of adversarial eyes — active on every code review — changes what slips through.
+
+---
+
+*Get all 106 SuperSkills including the complete security suite — [download for $50](/#pricing) and start shipping more secure code today.*

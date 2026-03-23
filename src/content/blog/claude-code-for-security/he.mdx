@@ -1,0 +1,221 @@
+---
+title: "Claude Code למהנדסי אבטחה"
+description: "איך מהנדסי אבטחה משתמשים בסקילי Claude Code לאיתור פרצות, מימוש אימות מאובטח ומניעת התקפות OWASP Top 10."
+date: "2026-01-30"
+author: "SuperSkills"
+tags: ["claude code", "אבטחה", "owasp", "פרצות", "אימות"]
+category: "שימוש"
+---
+
+אבטחה היא הדיסציפלינה ההנדסית היחידה שבה "טוב מספיק" לעולם אינו מקובל. הזרקת SQL אחת שפוספסה, מימוש JWT אחד חלש, rate limit אחד שנשכח — ופריצה מתרחשת. מהנדסי אבטחה נושאים על כתפיהם את הגנת המערכות שכולם אחרים בונים.
+
+Claude Code, מצויד בסקילים ממוקדי אבטחה, הופך לבודק שני ערני שחושב באופן עויין כברירת מחדל — ותופס את מה שעיניים עייפות מפספסות בסקירת קוד.
+
+## סקילי אבטחה באוסף SuperSkills
+
+שני סקילים בנויים במיוחד לעבודת אבטחה:
+
+**`security-reviewer`** — העדשה ההתקפית. סוקר קוד לאיתור פרצות בכל קטגוריות OWASP Top 10, בודק תבניות לא מאובטחות, קריפטוגרפיה חלשה, פגמי הזרקה ובקרת גישה שבורה. מתייחס לכל קלט כעויין פוטנציאלי.
+
+**`secure-code-guardian`** — העדשה ההגנתית. מנחה מימוש תבניות מאובטחות: זרימות auth נכונות, ניהול secrets, ניקוי קלטים, קידוד פלטים וארכיטקטורת defense-in-depth. עוזר לכתוב קוד שמאובטח בעיצוב, לא במקרה.
+
+טענו שניהם יחד לכיסוי אבטחה מקיף — `security-reviewer` מוצא מה שבור, ו-`secure-code-guardian` מראה כיצד לתקן נכון.
+
+## מניעת OWASP Top 10
+
+OWASP Top 10 מייצג את סיכוני האבטחה הקריטיים ביותר ביישומי ווב. כך סקילי האבטחה מטפלים בכל קטגוריה עיקרית:
+
+### 1. הזרקה (SQL, NoSQL, Command)
+
+ללא סקיל, Claude עלול לכתוב שאילתה באמצעות שרשור מחרוזות — הטמעת קלט משתמש ישירות במחרוזת SQL. עם `security-reviewer` פעיל, Claude מסמן זאת מיד וכותב מחדש באמצעות שאילתות מפרמטרות או ORM:
+
+```python
+# מאובטח — שאילתה מפרמטרת
+query = "SELECT * FROM users WHERE email = %s"
+cursor.execute(query, (email,))
+
+# או עם SQLAlchemy ORM — עוד יותר טוב
+user = db.session.query(User).filter(User.email == email).first()
+```
+
+הסקיל מבין ששאילתות מפרמטרות אינן "best practice טוב יותר" — הן דרישה קשיחה. שרשור מחרוזות לעולם אינו מקובל לשאילתות המכילות קלט משתמש.
+
+### 2. אימות שבור
+
+מימוש session תמים אין לו rate limiting, אין regeneration session לאחר התחברות, ומדליף האם חשבון משתמש קיים. עם `secure-code-guardian`, המימוש מוסיף rate limiting, השוואת סיסמה בזמן קבוע, regeneration session (מניעת session fixation) ותגובות שגיאה אחידות:
+
+```javascript
+app.post('/login', rateLimit({ max: 5, windowMs: 15 * 60 * 1000 }), async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
+  const valid = user && await bcrypt.compare(password, user.passwordHash);
+
+  if (!valid) {
+    // אותה תגובה בין אם המשתמש קיים ובין אם לאו — מונע enumeration
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  req.session.regenerate((err) => {
+    req.session.userId = user.id;
+    req.session.createdAt = Date.now();
+    res.json({ success: true });
+  });
+});
+```
+
+### 3. Cross-Site Scripting (XSS)
+
+XSS היא פרצת הווב הנפוצה ביותר. סקיל האבטחה אוכף הכנסת תוכן באמצעות שיטות DOM בטוחות — `textContent` לטקסט רגיל, וספריית sanitizer (כמו DOMPurify) לכל תוכן שדורש markup. לתבניות ב-server-side, הוא מתעקש על מנועי תבניות עם auto-escaping מופעל, לא שרשור מחרוזות ידני לבניית פלט HTML.
+
+### 4. הגנת CSRF
+
+לפעולות שמשנות מצב (POST/PUT/DELETE), הסקיל מממש את דפוס ה-synchronizer token ומבטיח שהגנת CSRF לעולם לא תהיה פטורה מנתיבים רגישים:
+
+```python
+# Flask-WTF מאמת token CSRF אוטומטית על כל נתיבים המשנים מצב
+@app.route('/transfer', methods=['POST'])
+def transfer():
+    amount = request.form['amount']
+    # עיבוד העברה — token CSRF מאומת על ידי middleware של ה-framework
+```
+
+## אימות קלטים
+
+סקיל `secure-code-guardian` אוכף אימות בכל גבול — באמצעות גישת allowlist: ציינו בדיוק מה תקין ודחו כל השאר:
+
+```typescript
+import { z } from 'zod';
+
+const CreateUserSchema = z.object({
+  email: z.string().email().max(254),
+  password: z.string().min(12).max(128),
+  role: z.enum(['user', 'admin']).default('user'),
+  age: z.number().int().min(18).max(120),
+});
+
+app.post('/users', async (req, res) => {
+  const result = CreateUserSchema.safeParse(req.body);
+
+  if (!result.success) {
+    return res.status(400).json({
+      error: 'Invalid input',
+      // לעולם אל תחשפו פרטי סכימה פנימיים בסביבת ייצור
+      ...(process.env.NODE_ENV !== 'production' && { details: result.error.issues })
+    });
+  }
+
+  const validatedData = result.data;
+  // המשך עם נתונים בטוחים ומוקלדים
+});
+```
+
+הסקיל אוכף אימות server-side (אימות client-side הוא UX, לא אבטחה), סכמות קפדניות והודעות שגיאה שאינן דולפות מידע.
+
+## ביקורת תלויות
+
+ליישומים מודרניים יש מאות תלויות עקיפות — כל אחת פני שטח תקיפה פוטנציאלי. עם סקיל האבטחה, Claude בונה ביקורת אוטומטית לתוך זרימת ה-CI שלכם:
+
+```yaml
+name: Security Audit
+
+on:
+  push:
+  schedule:
+    - cron: '0 9 * * 1'  # כל יום שני בבוקר
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm audit --audit-level=high
+      - uses: ossf/scorecard-action@v2.3.1
+        with:
+          results_format: sarif
+      - uses: github/codeql-action/upload-sarif@v3
+```
+
+## סריקת Secrets
+
+Secrets מקודדים בתוך הקוד הם מבין הפרצות הנפוצות והניתנות ביותר למניעה. סקיל האבטחה מגדיר מניעה בשכבות מרובות — hook לפני commit שחוסם secrets לפני שהם נכנסים ל-repo, וצעד CI שסורק את כל ההיסטוריה:
+
+```yaml
+- name: סריקת secrets
+  uses: trufflesecurity/trufflehog@main
+  with:
+    path: ./
+    base: ${{ github.event.repository.default_branch }}
+    head: HEAD
+    extra_args: --only-verified
+```
+
+הסקיל גם מנחה ניהול משתני סביבה: קבצי `.env` לפיתוח מקומי, מנהלי secrets (AWS Secrets Manager, HashiCorp Vault) לייצור, ו-`.gitignore` הכולל את כל קבצי `.env*`.
+
+## מימוש אימות: JWT כמו שצריך
+
+JWT נמצא בשימוש שגוי נפוץ. סקיל האבטחה יודע את המלכודות — התקפות בלבול אלגוריתם, ניצול אלגוריתם "none", claims חסרים וחיי token ארוכים מדי:
+
+```javascript
+const JWT_SECRET = process.env.JWT_SECRET; // לפחות 256-bit ערך אקראי
+
+function generateTokens(userId) {
+  const accessToken = jwt.sign(
+    { sub: userId, type: 'access' },
+    JWT_SECRET,
+    {
+      algorithm: 'HS256', // ציינו במפורש — לעולם אל תניחו לheader לקבוע
+      expiresIn: '15m',   // access tokens בחיי מדף קצרים
+      issuer: 'superskills.app',
+      audience: 'superskills.app',
+    }
+  );
+  return accessToken;
+}
+
+function verifyToken(token) {
+  return jwt.verify(token, JWT_SECRET, {
+    algorithms: ['HS256'], // Allowlist — דחיית RS256/none וכו'
+    issuer: 'superskills.app',
+    audience: 'superskills.app',
+  });
+}
+```
+
+ציון אלגוריתם מפורש, חיי מדף קצרים, claims נכונים ו-allowlist אלגוריתמים — כל שדה שמימושי JWT "just works" משמיטים.
+
+## תרחיש אמיתי: סקירת קוד אבטחה
+
+תנו לסקיל האבטחה controller ובקשו סקירה. endpoint מחיקה פשוט:
+
+```python
+@app.route('/admin/users/<user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    user = User.query.get(user_id)
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({'deleted': user_id})
+```
+
+עם `security-reviewer` פעיל, Claude מזהה חמש בעיות במעבר אחד:
+
+1. **אין בדיקת אימות** — כל אחד יכול לקרוא ל-endpoint זה
+2. **אין בדיקת הרשאות** — משתמשים מאומתים יכולים למחוק כל חשבון
+3. **IDOR** — user_id מ-URL לעולם אינו מאומת לבעלות
+4. **אין רישום ביקורת** — מחיקות אינן נרשמות לצורך ציות
+5. **אין soft delete** — נתונים נהרסים לצמיתות ללא מסלול שחזור
+
+הגרסה המתוקנת מוסיפה אימות, בדיקות תפקיד, מניעת מחיקה עצמית, soft delete ורישום ביקורת — כל זה במעבר אחד.
+
+## להתחיל עם סקילי אבטחה
+
+1. התקינו את אוסף SuperSkills ב-`~/.claude/skills/`
+2. טענו `security-reviewer` בעת סקירת קוד קיים
+3. טענו `secure-code-guardian` בעת כתיבת אימות, הרשאות או קוד טיפול בנתונים חדש
+4. טענו שניהם יחד במהלך ביקורות אבטחה
+5. שאלו ישירות: "סקור endpoint זה לפרצות אבטחה" או "מממש password reset מאובטח"
+
+באגי אבטחה יקרים לאיתור לאחר פריסה ואסוניים לפספוס לחלוטין. זוג עיניים שני עויין — פעיל בכל סקירת קוד — משנה את מה שחולף.
+
+---
+
+*קבלו את 106 הסקילים של SuperSkills כולל חבילת האבטחה המלאה — [הורידו ב-$50](/#pricing) והתחילו לשלוח קוד מאובטח יותר מהיום.*
