@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="https://superskills-one.vercel.app"><img src="https://img.shields.io/badge/Get_All_139_Skills-$50-D97757?style=for-the-badge" alt="Get All 139 Skills - $50" /></a>
-  <a href="#free-skills"><img src="https://img.shields.io/badge/5_Free_Skills-Below-22c55e?style=for-the-badge" alt="5 Free Skills Below" /></a>
+  <a href="#free-skills"><img src="https://img.shields.io/badge/5_Free_Skills-Below-22c55e?style=for-the-badge" alt="10 Free Skills Below" /></a>
 </p>
 
 <p align="center">
@@ -38,17 +38,22 @@
 
 <a name="free-skills"></a>
 
-## 5 Free Skills Included
+## 10 Free Skills Included
 
-This repo includes **5 complete, production-grade skills** — no signup, no paywall. Install them and experience the difference.
+This repo includes **10 complete, production-grade skills** — no signup, no paywall. Install them and experience the difference.
 
 | # | Skill | Domain | What It Does |
 |---|-------|--------|-------------|
 | 1 | **[React Expert](skills/react-expert/)** | Frontend | React 19, Server Components, hooks, performance, testing |
-| 2 | **[Python Pro](skills/python-pro/)** | Backend | Type-safe Python 3.11+, async/await, pytest, mypy strict |
-| 3 | **[DevOps Engineer](skills/devops-engineer/)** | Infrastructure | Docker, K8s, Terraform, CI/CD, GitHub Actions, incident response |
-| 4 | **[Debugging Wizard](skills/debugging-wizard/)** | Quality | Systematic debugging methodology, stack traces, hypothesis-driven |
-| 5 | **[Test Master](skills/test-master/)** | Quality | Unit/integration/E2E tests, coverage, performance & security testing |
+| 2 | **[TypeScript Pro](skills/typescript-pro/)** | Frontend | Strict mode, branded types, generics, tRPC end-to-end type safety |
+| 3 | **[Python Pro](skills/python-pro/)** | Backend | Type-safe Python 3.11+, async/await, pytest, mypy strict |
+| 4 | **[API Designer](skills/api-designer/)** | Architecture | REST & GraphQL APIs, OpenAPI specs, versioning, pagination patterns |
+| 5 | **[DevOps Engineer](skills/devops-engineer/)** | Infrastructure | CI/CD, Terraform, GitHub Actions, Kubernetes, incident response |
+| 6 | **[Docker Development](skills/docker-development/)** | Infrastructure | Dockerfile optimization, docker-compose, multi-stage builds, security |
+| 7 | **[Debugging Wizard](skills/debugging-wizard/)** | Quality | Systematic debugging methodology, stack traces, hypothesis-driven |
+| 8 | **[Test Master](skills/test-master/)** | Quality | Unit/integration/E2E tests, coverage, performance & security testing |
+| 9 | **[Deep Research](skills/deep-research/)** | Research | Multi-step autonomous web research, market analysis, competitive landscaping |
+| 10 | **[Claude API](skills/claude-api/)** | AI | Build apps with Anthropic SDK — Python, TypeScript, streaming, Agent SDK |
 
 ### Quick Install
 
@@ -63,7 +68,7 @@ That's it. Claude Code automatically detects and uses skills based on context.
 
 ## Full Collection: 139 Skills Across 20 Categories
 
-The 5 free skills above are a taste. The full collection covers **20 categories** spanning software development, DevOps, AI/ML, marketing, SEO, CRO, and more:
+The 10 free skills above are a taste. The full collection covers **20 categories** spanning software development, DevOps, AI/ML, marketing, SEO, CRO, and more:
 
 <a name="categories"></a>
 
@@ -187,4 +192,4 @@ The skills in this collection build upon open-source work by:
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details. The 5 free skills in this repo are fully open source. The full 139-skill collection is available at [superskills-one.vercel.app](https://superskills-one.vercel.app).
+MIT — see [LICENSE](LICENSE) for details. The 10 free skills in this repo are fully open source. The full 139-skill collection is available at [superskills-one.vercel.app](https://superskills-one.vercel.app).
